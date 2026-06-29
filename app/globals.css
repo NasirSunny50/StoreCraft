@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+/* Light-only marketplace: make `dark:` utilities inert (no `.dark` is ever set),
+   so legacy `dark:bg-*` classes never flip inputs/surfaces to dark. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------- Marketplace tokens (StarTech-style) ---------- */
+@theme {
+  --color-ink: #23282f; /* primary text */
+  --color-navbar: #1b2533; /* dark header strips, category bar, footer */
+  --color-navbar-2: #232f40;
+  --color-paper: #f1f3f6; /* page background */
+  --color-surface: #ffffff; /* cards / content blocks */
+  --color-surface-2: #f6f7f9;
+  --color-accent: #e74c3c; /* brand red: price + primary CTA */
+  --color-accent-strong: #cf3f2f;
+  --color-link: #1f6fb2; /* secondary link blue */
+  --color-muted: #7a828c;
+  --color-hairline: #e2e5ea;
+  --color-hairline-strong: #d2d6dd;
+  --color-star: #f5a623;
+
+  --shadow-card: 0 1px 2px rgba(20, 24, 31, 0.05);
+  --shadow-card-hover: 0 8px 22px -10px rgba(20, 24, 31, 0.28);
+
+  --radius: 4px;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    color-scheme: light; /* force light UA form controls even if OS is dark */
+  }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: "Roboto", "Segoe UI", system-ui, -apple-system, Arial,
+      sans-serif;
+    font-size: 14px;
+  }
+  /* Inputs default to white background + dark text so typed text is always
+     visible. Tailwind utilities (e.g. bg-transparent) can still override. */
+  input,
+  textarea,
+  select {
+    background-color: #fff;
+    color: var(--color-ink);
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-muted);
+  }
+  ::selection {
+    background: var(--color-accent);
+    color: #fff;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+  }
+}
+
+/* Small uppercase meta label */
+.meta-label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* ---------- Motion (subtle, reduced-motion safe) ---------- */
+@keyframes reveal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.reveal {
+  opacity: 0;
+}
+.reveal[data-revealed="true"] {
+  animation: reveal-rise 0.45s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal[data-revealed="true"] {
+    opacity: 1 !important;
+    animation: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
