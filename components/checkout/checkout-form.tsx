@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { placeOrderAction, type PlaceOrderState } from "@/lib/actions/order";
+import { previewCoupon } from "@/lib/actions/coupon";
 import { Button } from "@/components/ui/button";
 
 export type AddressView = {
@@ -21,6 +22,25 @@ export function CheckoutForm({ addresses }: { addresses: AddressView[] }) {
     placeOrderAction,
     null,
   );
+
+  const [couponInput, setCouponInput] = useState("");
+  const [applied, setApplied] = useState<{ code: string; discount: string; total: string } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponPending, startCoupon] = useTransition();
+
+  function applyCoupon() {
+    setCouponError(null);
+    startCoupon(async () => {
+      const res = await previewCoupon(couponInput);
+      if (res.ok) {
+        setApplied({ code: res.code, discount: res.discount, total: res.total });
+        setCouponInput(res.code);
+      } else {
+        setApplied(null);
+        setCouponError(res.error);
+      }
+    });
+  }
 
   const defaultId =
     addresses.find((a) => a.isDefault)?.id ?? addresses[0]?.id ?? "";
@@ -73,6 +93,37 @@ export function CheckoutForm({ addresses }: { addresses: AddressView[] }) {
           <input type="radio" name="paymentMethod" value="COD" defaultChecked />
           <span className="font-medium">Cash on Delivery (COD)</span>
         </label>
+      </section>
+
+      <section>
+        <h2 className="mb-2 text-sm font-bold text-ink">Coupon</h2>
+        <input type="hidden" name="couponCode" value={applied?.code ?? ""} />
+        <div className="flex gap-2">
+          <input
+            value={couponInput}
+            onChange={(e) => setCouponInput(e.target.value)}
+            placeholder="Coupon code"
+            data-testid="coupon-input"
+            className="w-48 rounded border border-hairline-strong px-3 py-2 text-sm uppercase"
+          />
+          <Button
+            type="button"
+            variant="soft"
+            disabled={couponPending || !couponInput.trim()}
+            data-testid="coupon-apply"
+            onClick={applyCoupon}
+          >
+            {couponPending ? "…" : "Apply"}
+          </Button>
+        </div>
+        {applied && (
+          <p data-testid="coupon-applied" className="mt-1 text-sm text-green-700">
+            Coupon <strong>{applied.code}</strong> applied — discount {applied.discount}. New total {applied.total}.
+          </p>
+        )}
+        {couponError && (
+          <p data-testid="coupon-error" className="mt-1 text-sm text-accent">{couponError}</p>
+        )}
       </section>
 
       <section>

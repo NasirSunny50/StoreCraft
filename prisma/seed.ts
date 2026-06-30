@@ -287,11 +287,27 @@ async function seedReviews() {
   console.log(`✓ Seeded ${reviewers.length} reviewers, ${total} reviews + aggregates`);
 }
 
+async function seedCoupons() {
+  const coupons = [
+    { code: "SAVE10", type: "PERCENT" as const, value: 10, minOrder: 0 },
+    { code: "FLAT500", type: "FIXED" as const, value: 500, minOrder: 50000 },
+  ];
+  for (const c of coupons) {
+    await prisma.coupon.upsert({
+      where: { code: c.code },
+      update: { type: c.type, value: c.value, minOrder: c.minOrder, isActive: true },
+      create: { code: c.code, type: c.type, value: c.value, minOrder: c.minOrder },
+    });
+  }
+  console.log(`✓ Seeded ${coupons.length} coupons`);
+}
+
 async function main() {
   console.log("Seeding database…");
   await seedUsers();
   await seedCatalog();
   await seedReviews();
+  await seedCoupons();
   console.log("Seed complete.");
 }
 

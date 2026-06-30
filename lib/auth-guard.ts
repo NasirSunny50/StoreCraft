@@ -23,3 +23,13 @@ export async function requireRole(...roles: Role[]) {
   if (!roles.includes(session.user.role)) redirect("/forbidden");
   return session;
 }
+
+/** ADMIN-only guard (products, customers, coupons, reports, settings). */
+export async function requireAdmin() {
+  return requireRole("ADMIN");
+}
+
+/** Admin portal guard — ADMIN or STAFF (orders, inventory, dashboard). */
+export async function requireStaff() {
+  return requireRole("ADMIN", "STAFF");
+}

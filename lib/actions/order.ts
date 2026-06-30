@@ -21,6 +21,7 @@ export async function placeOrderAction(
     addressId: formData.get("addressId"),
     paymentMethod: formData.get("paymentMethod") ?? "COD",
     note: formData.get("note"),
+    couponCode: formData.get("couponCode"),
   });
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors };
@@ -31,6 +32,7 @@ export async function placeOrderAction(
     const order = await createOrderForUser(session.user.id, {
       addressId: parsed.data.addressId,
       note: parsed.data.note,
+      couponCode: parsed.data.couponCode,
     });
     orderNumber = order.orderNumber;
   } catch (e) {

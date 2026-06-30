@@ -9,8 +9,9 @@ Electronics e-commerce store (customer-facing) + admin back portal. Built phase-
 - **Phase 1 — Setup, schema, auth roles, seed ✅ (tests green)**
 - **Phase 2 — Catalog (home, listing, filter/sort/search, detail), cart, wishlist, read-only reviews ✅ (tests green)**
 - **Phase 3 — Checkout (COD), address management, orders + tracking, cancel ✅ (tests green)**
+- **Phase 4 — Admin portal (dashboard, product CRUD + CSV, inventory, orders, customers, coupons, reports, RBAC) ✅ (tests green)**
 - UI restyled to a StarTech.com.bd-style marketplace look.
-- Phase 4+ — not started.
+- Phase 5 — not started (SSLCommerz, email/SMS, deploy).
 
 ## Prerequisites
 
@@ -83,6 +84,19 @@ npm run test:e2e       # Playwright — auth + role-based access (needs DB seede
 - **Stock-safe order placement**: stock decremented with an atomic conditional update (`updateMany … stock >= qty`) inside `prisma.$transaction` — oversell impossible even under concurrency. Order items snapshot name+price; StockLog written; cart cleared; human order number `ORD-YYYY-NNNNNN`.
 - **Orders** (`/orders`, `/orders/[orderNumber]`): cursor-paginated history, detail with status timeline (PENDING→CONFIRMED→SHIPPED→DELIVERED), color-coded badges, cancel (PENDING only → restocks atomically).
 - Tests: 77 unit/integration (incl. DB checkout: decrement, oversell-blocked, cancel-restock, order-number) + 35 Playwright e2e — all green.
+
+## What Phase 4 delivers (Admin portal, `/admin`)
+
+- **RBAC**: ADMIN sees everything; STAFF limited to Orders + Inventory + Dashboard (admin-only pages → /forbidden, hidden from nav). Guards on every route + action.
+- **Dashboard**: revenue / orders / customers / low-stock cards (date-range filter) + orders-by-status and top-products charts.
+- **Products**: list + search, create/edit (specs + image-URL editor), soft-delete/restore, unique-slug + price>0 validation, **CSV bulk import** with per-row error report. (Image upload is URL-based for now; Cloudinary widget is Phase 5.)
+- **Categories & Brands**: full CRUD (delete blocked while products reference them).
+- **Inventory**: stock view, low-stock filter, manual adjust → StockLog (atomic, can't go below 0).
+- **Orders**: list + status filter, detail, status update (logged); cancelling restocks atomically.
+- **Customers**: list/detail + order history, block/unblock (blocked users can't log in).
+- **Coupons**: CRUD (percent/fixed, min order, expiry, usage limit) + **apply at checkout** (validated; discount + atomic usedCount++ on order placement).
+- **Reports**: sales by date range + low-stock, **CSV export** (ADMIN-guarded route handler).
+- Tests: 99 unit/integration (coupon-math, CSV parser, DB admin: product CRUD/soft-delete, stock adjust, order status+restock, coupon apply, block) + 42 Playwright e2e (RBAC, product→storefront, coupon→checkout, block→no-login, order status) — all green.
 
 ## Test data of note (for e2e)
 

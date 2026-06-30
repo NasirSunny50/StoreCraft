@@ -7,6 +7,7 @@ import {
   canCancelOrder,
   SHIPPING_FEE,
 } from "@/lib/order-math";
+import { validateCoupon } from "@/lib/coupon-math";
 
 /** User-facing checkout failure (empty cart, no stock, bad address, …). */
 export class CheckoutError extends Error {}
@@ -39,7 +40,7 @@ export type PlacedOrder = { id: string; orderNumber: string };
  */
 export async function createOrderForUser(
   userId: string,
-  input: { addressId: string; note?: string },
+  input: { addressId: string; note?: string; couponCode?: string },
 ): Promise<PlacedOrder> {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -55,7 +56,7 @@ export async function createOrderForUser(
 
 async function placeOnce(
   userId: string,
-  input: { addressId: string; note?: string },
+  input: { addressId: string; note?: string; couponCode?: string },
 ): Promise<PlacedOrder> {
   const cart = await prisma.cart.findUnique({
     where: { userId },
@@ -76,9 +77,25 @@ async function placeOnce(
   const subtotal = computeCartSubtotal(
     liveItems.map((i) => ({ price: i.product.price, quantity: i.quantity })),
   );
+
+  // Optional coupon — validated against the live subtotal.
+  let couponId: string | undefined;
+  let couponDiscount: Prisma.Decimal = new Prisma.Decimal(0);
+  if (input.couponCode) {
+    const coupon = await prisma.coupon.findUnique({
+      where: { code: input.couponCode.trim().toUpperCase() },
+    });
+    if (!coupon) throw new CheckoutError("Invalid coupon code.");
+    const check = validateCoupon(coupon, subtotal);
+    if (!check.valid) throw new CheckoutError(check.reason);
+    couponId = coupon.id;
+    couponDiscount = check.discount;
+  }
+
   const { shippingFee, discount, total } = computeOrderTotals({
     subtotal,
     shippingFee: SHIPPING_FEE,
+    discount: couponDiscount,
   });
   const year = new Date().getFullYear();
 
@@ -100,12 +117,26 @@ async function placeOnce(
       }
     }
 
+    // Re-check + consume coupon usage inside the transaction.
+    if (couponId) {
+      const c = await tx.coupon.findUnique({ where: { id: couponId } });
+      if (!c || !c.isActive) throw new CheckoutError("Coupon is no longer valid.");
+      if (c.usageLimit != null && c.usedCount >= c.usageLimit) {
+        throw new CheckoutError("This coupon has reached its usage limit.");
+      }
+      await tx.coupon.update({
+        where: { id: couponId },
+        data: { usedCount: { increment: 1 } },
+      });
+    }
+
     const orderNumber = await generateOrderNumber(tx, year);
     const order = await tx.order.create({
       data: {
         orderNumber,
         userId,
         addressId: address.id,
+        couponId: couponId ?? null,
         subtotal,
         shippingFee,
         discount,
