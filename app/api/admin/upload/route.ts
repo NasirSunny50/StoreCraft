@@ -1,15 +1,9 @@
-import { writeFile, mkdir } from "node:fs/promises";
-import { join } from "node:path";
-import { randomUUID } from "node:crypto";
 import { auth } from "@/lib/auth";
-
-const ALLOWED = new Set(["image/jpeg", "image/png"]);
-const MAX_BYTES = 5 * 1024 * 1024;
+import { validateImage, storeImage } from "@/lib/upload";
 
 /**
- * Local image upload (JPG/PNG → /public/uploads). ADMIN only.
- * For production this would be swapped for Cloudinary; the stored value is a URL
- * either way, so the rest of the app is unaffected.
+ * Image upload (JPG/PNG). ADMIN only. Stores to Cloudinary in production
+ * (when credentials are set) and falls back to /public/uploads locally.
  */
 export async function POST(req: Request) {
   const session = await auth();
@@ -22,18 +16,16 @@ export async function POST(req: Request) {
   if (!(file instanceof File)) {
     return Response.json({ error: "No file uploaded." }, { status: 400 });
   }
-  if (!ALLOWED.has(file.type)) {
-    return Response.json({ error: "Only JPG or PNG images are allowed." }, { status: 400 });
-  }
-  if (file.size > MAX_BYTES) {
-    return Response.json({ error: "Image must be 5MB or smaller." }, { status: 400 });
+
+  const check = validateImage(file);
+  if (!check.ok) {
+    return Response.json({ error: check.error }, { status: 400 });
   }
 
-  const ext = file.type === "image/png" ? "png" : "jpg";
-  const name = `${randomUUID()}.${ext}`;
-  const dir = join(process.cwd(), "public", "uploads");
-  await mkdir(dir, { recursive: true });
-  await writeFile(join(dir, name), Buffer.from(await file.arrayBuffer()));
-
-  return Response.json({ url: `/uploads/${name}` });
+  try {
+    const url = await storeImage(file);
+    return Response.json({ url });
+  } catch {
+    return Response.json({ error: "Upload failed. Please try again." }, { status: 500 });
+  }
 }
