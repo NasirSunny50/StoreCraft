@@ -8,6 +8,7 @@ import {
 import { toCardData } from "@/lib/view/product-card-data";
 import { ProductSection } from "@/components/product/product-section";
 import { BannerSlider } from "@/components/storefront/banner-slider";
+import { FeaturedCategories } from "@/components/storefront/featured-categories";
 
 export default async function HomePage() {
   const categories = await getCategories();
@@ -48,7 +49,7 @@ export default async function HomePage() {
 
         <BannerSlider />
 
-        <div className="hidden flex-col gap-3 lg:flex">
+        <div className="grid grid-cols-2 gap-3 lg:flex lg:flex-col">
           <div className="flex flex-1 flex-col justify-center rounded border border-hairline bg-[linear-gradient(120deg,#e74c3c,#cf3f2f)] p-4 text-white">
             <span className="text-xs font-semibold uppercase">Cash on Delivery</span>
             <p className="mt-1 text-lg font-bold leading-tight">Pay when you receive</p>
@@ -62,6 +63,9 @@ export default async function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* Featured categories icon grid */}
+      <FeaturedCategories categories={categories} />
 
       {/* Featured */}
       <ProductSection

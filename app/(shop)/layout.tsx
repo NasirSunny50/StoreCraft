@@ -1,15 +1,21 @@
 import Link from "next/link";
+import { auth } from "@/lib/auth";
 import { SiteHeader } from "@/components/site-header";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 
-export default function ShopLayout({
+export default async function ShopLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const session = await auth();
+
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 pb-24 lg:pb-5">
         {children}
       </main>
+
+      <MobileBottomNav isAuthed={!!session?.user} />
 
       <footer className="mt-10 bg-navbar text-white/70">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-12 md:grid-cols-4">

@@ -6,6 +6,7 @@ import { getCart, cartCount } from "@/lib/cart";
 import { getWishlist, wishlistCount } from "@/lib/wishlist";
 import { getCategories } from "@/lib/queries/product";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { MobileMenu } from "@/components/mobile-menu";
 
 export async function SiteHeader() {
   const [session, cart, wishlist, categories] = await Promise.all([
@@ -68,17 +69,23 @@ export async function SiteHeader() {
 
       {/* Main header: logo + search + cart */}
       <div className="border-b border-hairline bg-surface">
-        <div className="mx-auto flex max-w-7xl items-center gap-6 px-4 py-3.5">
+        <div className="mx-auto max-w-7xl px-4 py-3">
+          <div className="flex items-center gap-3">
+          <MobileMenu
+            categories={categories}
+            isAuthed={!!user}
+            isStaff={!!user && hasRole(user.role, "ADMIN", "STAFF")}
+          />
           <Link href="/" className="flex shrink-0 items-baseline gap-1">
-            <span className="text-2xl font-extrabold tracking-tight text-accent">Store</span>
-            <span className="text-2xl font-extrabold tracking-tight text-ink">Craft</span>
+            <span className="text-xl font-extrabold tracking-tight text-accent sm:text-2xl">Store</span>
+            <span className="text-xl font-extrabold tracking-tight text-ink sm:text-2xl">Craft</span>
           </Link>
 
-          <form action="/products" className="flex h-10 flex-1 items-stretch overflow-hidden rounded border border-hairline-strong">
+          <form action="/products" className="hidden h-10 flex-1 items-stretch overflow-hidden rounded border border-hairline-strong lg:flex">
             <select
               name="category"
               aria-label="Category"
-              className="hidden border-r border-hairline bg-surface-2 px-3 text-xs text-ink sm:block"
+              className="border-r border-hairline bg-surface-2 px-3 text-xs text-ink"
             >
               <option value="">All Categories</option>
               {categories.map((c) => (
@@ -130,11 +137,26 @@ export async function SiteHeader() {
               <span className="hidden text-xs lg:inline">Cart</span>
             </Link>
           </div>
+          </div>
+
+          {/* Mobile full-width search row */}
+          <form action="/products" className="mt-3 flex h-10 items-stretch overflow-hidden rounded border border-hairline-strong lg:hidden">
+            <input
+              name="q"
+              type="search"
+              placeholder="Search products…"
+              aria-label="Search products"
+              className="min-w-0 flex-1 px-3 text-sm outline-none"
+            />
+            <button type="submit" aria-label="Search" className="flex items-center bg-accent px-4 text-white hover:bg-accent-strong">
+              <Search className="h-4 w-4" />
+            </button>
+          </form>
         </div>
       </div>
 
-      {/* Category navigation bar */}
-      <nav className="bg-navbar-2 text-white">
+      {/* Category navigation bar (desktop only — mobile uses the hamburger menu) */}
+      <nav className="hidden bg-navbar-2 text-white lg:block">
         <div className="mx-auto flex max-w-7xl items-center px-4">
           <div className="group relative">
             <button className="flex h-11 items-center gap-2 bg-accent px-4 text-sm font-semibold">
