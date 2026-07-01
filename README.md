@@ -18,7 +18,19 @@ Electronics e-commerce store (customer-facing) + admin back portal. Built phase-
 - Node 20+ (built on Node 24)
 - Docker (for local Postgres) — or any PostgreSQL instance
 
-## Setup
+## Quick start (one command)
+
+Runs everything locally — Postgres (Docker), migrations, seed, then the app
+(storefront + `/admin` + API are one Next.js process):
+
+```bash
+npm run start:local        # or: ./start.sh   (Windows: double-click start.bat)
+```
+
+Flags: `--fresh` (recreate the DB), `--no-seed` (skip seeding).
+Then open http://localhost:3000 (storefront) and http://localhost:3000/admin.
+
+## Setup (manual)
 
 ```bash
 # 1. Install dependencies

@@ -4,6 +4,8 @@ import { getAdminProducts } from "@/lib/queries/admin-product";
 import { formatBDT } from "@/lib/utils/money";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { ProductRowActions } from "@/components/admin/product-row-actions";
+import { AdminPagination } from "@/components/admin/admin-pagination";
+import { parsePageParams } from "@/lib/pagination";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 
@@ -12,12 +14,14 @@ export const metadata = { title: "Products — Admin" };
 export default async function AdminProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; deleted?: string }>;
+  searchParams: Promise<{ q?: string; deleted?: string; page?: string; perPage?: string }>;
 }) {
   await requireAdmin();
-  const { q, deleted } = await searchParams;
+  const sp = await searchParams;
+  const { q, deleted } = sp;
   const includeDeleted = deleted === "1";
-  const products = await getAdminProducts({ q, includeDeleted });
+  const { page, perPage, skip, take } = parsePageParams(sp);
+  const { items: products, total } = await getAdminProducts({ q, includeDeleted, skip, take });
 
   return (
     <div>
@@ -34,6 +38,7 @@ export default async function AdminProductsPage({
         <form action="/admin/products" className="flex gap-2">
           <input name="q" defaultValue={q ?? ""} placeholder="Search products…" className="w-64 rounded border border-hairline-strong px-3 py-1.5 text-sm" />
           {includeDeleted && <input type="hidden" name="deleted" value="1" />}
+          <input type="hidden" name="perPage" value={perPage} />
           <button className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white">Search</button>
         </form>
         <Link
@@ -82,6 +87,8 @@ export default async function AdminProductsPage({
           </tbody>
         </table>
       </div>
+
+      <AdminPagination total={total} page={page} perPage={perPage} />
     </div>
   );
 }

@@ -3,17 +3,21 @@ import { requireAdmin } from "@/lib/auth-guard";
 import { getCustomers } from "@/lib/queries/admin-misc";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { CustomerBlockButton } from "@/components/admin/customer-block-button";
+import { AdminPagination } from "@/components/admin/admin-pagination";
+import { parsePageParams } from "@/lib/pagination";
 
 export const metadata = { title: "Customers — Admin" };
 
 export default async function AdminCustomersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; perPage?: string }>;
 }) {
   await requireAdmin();
-  const { q } = await searchParams;
-  const customers = await getCustomers(q);
+  const sp = await searchParams;
+  const { q } = sp;
+  const { page, perPage, skip, take } = parsePageParams(sp);
+  const { items: customers, total } = await getCustomers({ q, skip, take });
 
   return (
     <div>
@@ -21,6 +25,7 @@ export default async function AdminCustomersPage({
 
       <form action="/admin/customers" className="mb-3 flex gap-2">
         <input name="q" defaultValue={q ?? ""} placeholder="Search name or email…" className="w-64 rounded border border-hairline-strong px-3 py-1.5 text-sm" />
+        <input type="hidden" name="perPage" value={perPage} />
         <button className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white">Search</button>
       </form>
 
@@ -57,6 +62,8 @@ export default async function AdminCustomersPage({
           </tbody>
         </table>
       </div>
+
+      <AdminPagination total={total} page={page} perPage={perPage} />
     </div>
   );
 }

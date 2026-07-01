@@ -36,7 +36,7 @@ export default async function AdminOrderDetailPage({
             <div className="divide-y divide-hairline">
               {order.items.map((it) => (
                 <div key={it.id} className="flex justify-between px-4 py-2.5 text-sm">
-                  <span>{it.name} <span className="text-muted">× {it.quantity}</span></span>
+                  <span>{it.name} <span className="text-muted">× {it.quantity}{it.color ? ` · ${it.color}` : ""}</span></span>
                   <span className="font-medium">{formatBDT(it.price.times(it.quantity))}</span>
                 </div>
               ))}

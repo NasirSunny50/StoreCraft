@@ -62,6 +62,8 @@ export async function createProduct(
       brandId: d.brandId ?? null,
       isActive: d.isActive,
       isFeatured: d.isFeatured,
+      warranty: d.warranty ?? null,
+      colors: d.colors,
       specs: { create: d.specs },
       images: { create: d.images.map((url, i) => ({ url, position: i })) },
     },
@@ -104,6 +106,8 @@ export async function updateProduct(
         brandId: d.brandId ?? null,
         isActive: d.isActive,
         isFeatured: d.isFeatured,
+        warranty: d.warranty ?? null,
+        colors: d.colors,
       },
     });
     await tx.productSpec.deleteMany({ where: { productId: id } });

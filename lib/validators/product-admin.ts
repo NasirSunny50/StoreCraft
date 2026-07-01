@@ -25,9 +25,15 @@ export const productFormSchema = z.object({
   brandId: z.preprocess(emptyToUndef, z.string().optional()),
   isActive: z.coerce.boolean().default(true),
   isFeatured: z.coerce.boolean().default(false),
+  warranty: z.preprocess(emptyToUndef, z.string().trim().max(120).optional()),
+  colors: z.array(z.string().trim().min(1).max(40)).default([]),
   specs: z.array(specSchema).default([]),
   images: z.array(z.string().trim().url("Image must be a valid URL")).default([]),
-});
+}).refine(
+  // comparePrice is the struck "regular" price — it must exceed the sale price.
+  (d) => d.comparePrice === undefined || d.comparePrice > d.price,
+  { message: "Regular price must be higher than the sale price", path: ["comparePrice"] },
+);
 
 export type ProductFormInput = z.infer<typeof productFormSchema>;
 

@@ -58,6 +58,15 @@ async function placeOnce(
   userId: string,
   input: { addressId: string; note?: string; couponCode?: string },
 ): Promise<PlacedOrder> {
+  // A JWT session stays valid until it expires, so re-check the block flag here
+  // — a customer blocked mid-session must not be able to place orders.
+  const account = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isBlocked: true },
+  });
+  if (!account) throw new CheckoutError("Account not found.");
+  if (account.isBlocked) throw new CheckoutError("Your account has been blocked.");
+
   const cart = await prisma.cart.findUnique({
     where: { userId },
     include: { items: { include: { product: true } } },
@@ -151,6 +160,7 @@ async function placeOnce(
             name: i.product.name, // snapshot
             price: i.product.price, // snapshot
             quantity: i.quantity,
+            color: i.color, // snapshot of chosen colour
           })),
         },
         statusLogs: {

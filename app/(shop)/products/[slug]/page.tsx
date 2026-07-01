@@ -9,9 +9,7 @@ import { formatBDT } from "@/lib/utils/money";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { ProductSection } from "@/components/product/product-section";
 import { StarRating } from "@/components/product/star-rating";
-import { AddToCartButton } from "@/components/cart/add-to-cart-button";
-import { BuyNowButton } from "@/components/cart/buy-now-button";
-import { WishlistButton } from "@/components/wishlist/wishlist-button";
+import { ProductBuyBox } from "@/components/product/product-buy-box";
 
 export async function generateMetadata({
   params,
@@ -132,17 +130,22 @@ export default async function ProductDetailPage({
               </div>
             )}
 
-            {/* Buy box */}
-            <div className="mt-5 max-w-md space-y-3" data-testid="buy-box">
-              <AddToCartButton productId={product.id} stock={product.stock} withQuantity size="lg" />
-              <div className="grid grid-cols-2 gap-3">
-                <BuyNowButton productId={product.id} stock={product.stock} size="lg" />
-                <WishlistButton
-                  productId={product.id}
-                  isAuthed={isAuthed}
-                  initiallyInWishlist={inWishlist}
-                />
+            {product.warranty && (
+              <div className="mt-4 flex items-center gap-2 text-sm">
+                <ShieldCheck className="h-4 w-4 text-accent" />
+                <span className="text-ink" data-testid="product-warranty">{product.warranty}</span>
               </div>
+            )}
+
+            {/* Buy box */}
+            <div className="mt-5 max-w-md">
+              <ProductBuyBox
+                productId={product.id}
+                stock={product.stock}
+                colors={product.colors}
+                isAuthed={isAuthed}
+                initiallyInWishlist={inWishlist}
+              />
             </div>
 
             {/* Trust strip */}

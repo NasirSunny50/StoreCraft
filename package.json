@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "start:local": "node scripts/dev-up.mjs",
+    "start:local:fresh": "node scripts/dev-up.mjs --fresh",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

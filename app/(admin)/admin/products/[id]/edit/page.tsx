@@ -41,6 +41,8 @@ export default async function EditProductPage({
           brandId: product.brandId ?? "",
           isActive: product.isActive,
           isFeatured: product.isFeatured,
+          warranty: product.warranty ?? "",
+          colors: product.colors,
           specs: product.specs.map((s) => ({ key: s.key, value: s.value })),
           images: product.images.map((i) => i.url),
         }}

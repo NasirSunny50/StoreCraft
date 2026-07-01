@@ -4,23 +4,28 @@ import { getInventory } from "@/lib/queries/admin-misc";
 import { formatBDT } from "@/lib/utils/money";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { OrderStatusBadge } from "@/components/order/order-status-badge";
+import { AdminPagination } from "@/components/admin/admin-pagination";
+import { parsePageParams } from "@/lib/pagination";
 
 export const metadata = { title: "Reports — Admin" };
 
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; page?: string; perPage?: string }>;
 }) {
   await requireAdmin();
-  const { from, to } = await searchParams;
+  const sp = await searchParams;
+  const { from, to } = sp;
   const fromDate = from ? new Date(from) : undefined;
   const toDate = to ? new Date(`${to}T23:59:59`) : undefined;
+  const { page, perPage, skip, take } = parsePageParams(sp);
 
   const [report, lowStock] = await Promise.all([
     getSalesReport(fromDate, toDate),
     getInventory(true),
   ]);
+  const pagedOrders = report.orders.slice(skip, skip + take);
 
   const exportQs = new URLSearchParams();
   if (from) exportQs.set("from", from);
@@ -41,6 +46,7 @@ export default async function ReportsPage({
               <span className="text-xs text-muted">To</span>
               <input type="date" name="to" defaultValue={to ?? ""} className="rounded border border-hairline-strong px-2 py-1.5" />
             </label>
+            <input type="hidden" name="perPage" value={perPage} />
             <button className="rounded bg-accent px-3 py-1.5 font-medium text-white">Apply</button>
           </form>
           <a
@@ -63,7 +69,7 @@ export default async function ReportsPage({
           </div>
         </div>
 
-        <div className="mt-3 max-h-96 overflow-auto">
+        <div className="mt-3 overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-surface-2 text-left text-xs text-muted">
               <tr>
@@ -75,7 +81,7 @@ export default async function ReportsPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-hairline">
-              {report.orders.map((o) => (
+              {pagedOrders.map((o) => (
                 <tr key={o.id} className="bg-surface">
                   <td className="px-3 py-2 font-medium">{o.orderNumber}</td>
                   <td className="px-3 py-2 text-muted">{o.user.name}</td>
@@ -88,6 +94,8 @@ export default async function ReportsPage({
             </tbody>
           </table>
         </div>
+
+        <AdminPagination total={report.count} page={page} perPage={perPage} />
       </section>
 
       <section>

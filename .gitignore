@@ -3,6 +3,10 @@
 /.pnp
 .pnp.*
 
+# locally uploaded images (kept out of git)
+/public/uploads/*
+!/public/uploads/.gitkeep
+
 # next.js
 /.next/
 /out/

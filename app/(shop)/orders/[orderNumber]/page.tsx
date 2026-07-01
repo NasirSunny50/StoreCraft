@@ -114,6 +114,7 @@ export default async function OrderDetailPage({
                   <div className="font-medium text-ink">{item.name}</div>
                   <div className="text-muted">
                     {formatBDT(item.price)} × {item.quantity}
+                    {item.color ? ` · ${item.color}` : ""}
                   </div>
                 </div>
                 <div className="font-medium">

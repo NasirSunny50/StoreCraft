@@ -5,6 +5,8 @@ import { getAdminOrders } from "@/lib/queries/admin-misc";
 import { formatBDT } from "@/lib/utils/money";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { OrderStatusBadge } from "@/components/order/order-status-badge";
+import { AdminPagination } from "@/components/admin/admin-pagination";
+import { parsePageParams } from "@/lib/pagination";
 import { cn } from "@/lib/utils/cn";
 
 export const metadata = { title: "Orders — Admin" };
@@ -21,12 +23,17 @@ const FILTERS: (OrderStatus | "ALL")[] = [
 export default async function AdminOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; page?: string; perPage?: string }>;
 }) {
   await requireStaff();
-  const { status } = await searchParams;
-  const active = (FILTERS.includes(status as OrderStatus) ? status : "ALL") as OrderStatus | "ALL";
-  const orders = await getAdminOrders(active === "ALL" ? undefined : active);
+  const sp = await searchParams;
+  const active = (FILTERS.includes(sp.status as OrderStatus) ? sp.status : "ALL") as OrderStatus | "ALL";
+  const { page, perPage, skip, take } = parsePageParams(sp);
+  const { items: orders, total } = await getAdminOrders({
+    status: active === "ALL" ? undefined : active,
+    skip,
+    take,
+  });
 
   return (
     <div>
@@ -78,6 +85,8 @@ export default async function AdminOrdersPage({
           </tbody>
         </table>
       </div>
+
+      <AdminPagination total={total} page={page} perPage={perPage} />
     </div>
   );
 }

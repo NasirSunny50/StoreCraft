@@ -95,13 +95,17 @@ export type CartMutationResult =
 export async function addToCart(
   productId: string,
   qty = 1,
+  color = "",
 ): Promise<CartMutationResult> {
   const product = await prisma.product.findFirst({
     where: { id: productId, isActive: true, isDeleted: false },
-    select: { stock: true },
+    select: { stock: true, colors: true },
   });
   if (!product) return { ok: false, error: "Product not found." };
   if (product.stock <= 0) return { ok: false, error: "This product is out of stock." };
+
+  // Only accept a colour the product actually offers (ignore arbitrary input).
+  const safeColor = color && product.colors.includes(color) ? color : "";
 
   const cart = await getOrCreateCart();
   const existing = cart.items.find((i) => i.productId === productId);
@@ -112,8 +116,8 @@ export async function addToCart(
 
   await prisma.cartItem.upsert({
     where: { cartId_productId: { cartId: cart.id, productId } },
-    update: { quantity: finalQty },
-    create: { cartId: cart.id, productId, quantity: finalQty },
+    update: { quantity: finalQty, color: safeColor },
+    create: { cartId: cart.id, productId, quantity: finalQty, color: safeColor },
   });
 
   const capped = existing
@@ -212,8 +216,8 @@ export async function mergeGuestCartIntoUser(userId: string): Promise<void> {
       if (merged <= 0) continue;
       await tx.cartItem.upsert({
         where: { cartId_productId: { cartId: userCart.id, productId: gItem.productId } },
-        update: { quantity: merged },
-        create: { cartId: userCart.id, productId: gItem.productId, quantity: merged },
+        update: { quantity: merged, color: gItem.color },
+        create: { cartId: userCart.id, productId: gItem.productId, quantity: merged, color: gItem.color },
       });
     }
     await tx.cart.delete({ where: { id: guestCart.id } });

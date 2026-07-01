@@ -17,6 +17,7 @@ export type CartItemView = {
   lineTotalFormatted: string;
   quantity: number;
   stock: number;
+  color: string;
 };
 
 export function CartItemRow({ item }: { item: CartItemView }) {
@@ -54,6 +55,9 @@ export function CartItemRow({ item }: { item: CartItemView }) {
         <Link href={`/products/${item.slug}`} className="font-medium hover:underline">
           {item.name}
         </Link>
+        {item.color && (
+          <p className="text-xs text-muted" data-testid="cart-item-color">Color: {item.color}</p>
+        )}
         <p className="text-sm text-gray-500">{item.priceFormatted} each</p>
       </div>
 

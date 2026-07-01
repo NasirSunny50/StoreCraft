@@ -16,8 +16,9 @@ function revalidateCartViews() {
 export async function addToCartAction(
   productId: string,
   qty = 1,
+  color = "",
 ): Promise<CartMutationResult> {
-  const result = await addToCart(productId, qty);
+  const result = await addToCart(productId, qty, color);
   revalidateCartViews();
   return result;
 }

@@ -33,6 +33,7 @@ export default async function CartPage() {
     lineTotalFormatted: formatBDT(multiply(i.product.price, i.quantity)),
     quantity: i.quantity,
     stock: i.product.stock,
+    color: i.color,
   }));
 
   const subtotal = cartSubtotal(cart);

@@ -30,9 +30,14 @@ export async function updateOrderStatus(
       });
       if (!order) throw new Error("Order not found.");
       if (order.status === status) throw new Error("Order already has that status.");
+      // CANCELLED is terminal: its stock was restocked, so re-activating it would
+      // hand out items without decrementing stock again (inventory would drift).
+      if (order.status === "CANCELLED") {
+        throw new Error("A cancelled order cannot be changed.");
+      }
 
-      // Restock when moving INTO cancelled from a non-cancelled state.
-      if (status === "CANCELLED" && order.status !== "CANCELLED") {
+      // Restock when moving INTO cancelled (order is guaranteed non-cancelled here).
+      if (status === "CANCELLED") {
         for (const item of order.items) {
           await tx.product.updateMany({
             where: { id: item.productId },

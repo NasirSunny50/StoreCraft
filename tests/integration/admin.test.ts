@@ -30,6 +30,7 @@ const baseProduct = {
   lowStockAt: 5,
   isActive: true,
   isFeatured: false,
+  colors: [] as string[],
   specs: [] as { key: string; value: string }[],
   images: [] as string[],
 };
@@ -155,15 +156,33 @@ describe("order status management", () => {
 
     const c = await updateOrderStatus(order.id, "CONFIRMED", "verified");
     expect(c.ok).toBe(true);
-    let db = await prisma.order.findUnique({ where: { id: order.id }, include: { statusLogs: true } });
+    const db = await prisma.order.findUnique({ where: { id: order.id }, include: { statusLogs: true } });
     expect(db?.status).toBe("CONFIRMED");
     expect(db?.statusLogs.some((l) => l.status === "CONFIRMED" && l.note === "verified")).toBe(true);
 
     await updateOrderStatus(order.id, "CANCELLED", "refund issued");
     const afterCancel = (await prisma.product.findUnique({ where: { id: cprodId } }))!.stock;
     expect(afterCancel).toBe(afterPlace + 1);
-    db = await prisma.order.findUnique({ where: { id: order.id } });
-    expect(db?.status).toBe("CANCELLED");
+    const cancelled = await prisma.order.findUnique({ where: { id: order.id } });
+    expect(cancelled?.status).toBe("CANCELLED");
+  });
+
+  it("cannot re-activate a cancelled order (no double stock, terminal)", async () => {
+    await prisma.cartItem.deleteMany({ where: { cartId } });
+    await prisma.cartItem.create({ data: { cartId, productId: cprodId, quantity: 2 } });
+    const order = await createOrderForUser(customerId, { addressId });
+
+    await updateOrderStatus(order.id, "CANCELLED", "cancel");
+    const restocked = (await prisma.product.findUnique({ where: { id: cprodId } }))!.stock;
+
+    // Attempt to move it back to an active state — must be refused.
+    const res = await updateOrderStatus(order.id, "CONFIRMED");
+    expect(res.ok).toBe(false);
+    const stillCancelled = await prisma.order.findUnique({ where: { id: order.id } });
+    expect(stillCancelled?.status).toBe("CANCELLED");
+    // Stock must not have been double-counted by the failed re-activation.
+    const after = (await prisma.product.findUnique({ where: { id: cprodId } }))!.stock;
+    expect(after).toBe(restocked);
   });
 });
 
