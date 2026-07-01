@@ -23,12 +23,12 @@ export async function SiteHeader() {
       {/* Top utility bar */}
       <div className="bg-navbar text-white">
         <div className="mx-auto flex h-9 max-w-7xl items-center justify-between px-4 text-xs">
-          <span className="text-white/70">Tech for everyone — fast delivery across Bangladesh</span>
-          <div className="flex items-center gap-4">
+          <span className="hidden truncate text-white/70 sm:inline">Tech for everyone — fast delivery across Bangladesh</span>
+          <div className="ml-auto flex items-center gap-4">
             <span className="hidden items-center gap-1 text-white/70 sm:flex">
               <Phone className="h-3.5 w-3.5" /> Hotline 16793
             </span>
-            <Link href="/products" className="text-white/80 hover:text-white">
+            <Link href="/products" className="hidden text-white/80 hover:text-white sm:inline">
               Track Order
             </Link>
             {user ? (
@@ -40,7 +40,7 @@ export async function SiteHeader() {
                 Addresses
               </Link>
               <span className="flex items-center gap-2" data-testid="user-greeting">
-                <span className="text-white/80">Hi, {user.name}</span>
+                <span className="hidden text-white/80 sm:inline">Hi, {user.name}</span>
                 <span data-testid="user-role" className="rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold">
                   {user.role}
                 </span>

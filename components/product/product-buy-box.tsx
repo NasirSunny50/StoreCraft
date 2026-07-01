@@ -90,12 +90,12 @@ export function ProductBuyBox({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Button type="button" variant="accent" size="lg" disabled={pending} data-testid="add-to-cart" onClick={() => add()}>
-              {msg?.type === "ok" ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-              Add to cart
+            <Button type="button" variant="accent" size="lg" loading={pending} data-testid="add-to-cart" onClick={() => add()}>
+              {!pending && (msg?.type === "ok" ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />)}
+              {pending ? "Adding…" : "Add to cart"}
             </Button>
-            <Button type="button" variant="navy" size="lg" disabled={pending} data-testid="buy-now" onClick={() => add(() => router.push("/cart"))}>
-              Buy Now
+            <Button type="button" variant="navy" size="lg" loading={pending} data-testid="buy-now" onClick={() => add(() => router.push("/cart"))}>
+              {pending ? "Adding…" : "Buy Now"}
             </Button>
           </div>
           {msg && (

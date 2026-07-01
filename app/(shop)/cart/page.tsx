@@ -16,7 +16,7 @@ export default async function CartPage() {
         <p className="text-gray-500">Browse our catalog to add items.</p>
         <Link
           href="/products"
-          className="inline-block rounded-md bg-blue-600 px-6 py-2 font-medium text-white hover:bg-blue-700"
+          className="inline-block rounded bg-accent px-6 py-2 font-medium text-white hover:bg-accent-strong"
         >
           Shop products
         </Link>

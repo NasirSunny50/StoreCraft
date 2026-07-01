@@ -109,11 +109,12 @@ export function CheckoutForm({ addresses }: { addresses: AddressView[] }) {
           <Button
             type="button"
             variant="soft"
-            disabled={couponPending || !couponInput.trim()}
+            loading={couponPending}
+            disabled={!couponInput.trim()}
             data-testid="coupon-apply"
             onClick={applyCoupon}
           >
-            {couponPending ? "…" : "Apply"}
+            Apply
           </Button>
         </div>
         {applied && (
@@ -147,7 +148,7 @@ export function CheckoutForm({ addresses }: { addresses: AddressView[] }) {
         type="submit"
         variant="accent"
         size="lg"
-        disabled={pending}
+        loading={pending}
         data-testid="place-order"
         className="w-full"
       >

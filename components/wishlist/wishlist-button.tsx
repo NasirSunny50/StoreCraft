@@ -47,15 +47,18 @@ export function WishlistButton({
       type="button"
       variant="outline"
       onClick={add}
-      disabled={pending || inWishlist}
+      loading={pending}
+      disabled={inWishlist}
       data-testid="wishlist-button"
       className="w-full"
     >
-      <Heart
-        className="h-4 w-4"
-        strokeWidth={1.5}
-        fill={inWishlist ? "currentColor" : "none"}
-      />
+      {!pending && (
+        <Heart
+          className="h-4 w-4"
+          strokeWidth={1.5}
+          fill={inWishlist ? "currentColor" : "none"}
+        />
+      )}
       {inWishlist ? "Saved to wishlist" : pending ? "Saving…" : "Add to wishlist"}
     </Button>
   );
