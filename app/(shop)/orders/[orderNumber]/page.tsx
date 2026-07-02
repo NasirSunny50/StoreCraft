@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ArrowLeft } from "lucide-react";
 import { requireAuth } from "@/lib/auth-guard";
 import { getOrderByNumberForUser } from "@/lib/queries/order";
 import { canCancelOrder, ORDER_STATUS_FLOW } from "@/lib/order-math";
@@ -40,7 +40,7 @@ export default async function OrderDetailPage({
       {placed === "1" && (
         <div
           data-testid="order-confirmation"
-          className="flex items-center gap-3 rounded border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+          className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
         >
           <CheckCircle2 className="h-5 w-5" />
           <span>
@@ -50,12 +50,15 @@ export default async function OrderDetailPage({
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/orders" className="text-sm text-link hover:underline">
-            ← Orders
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/orders"
+            className="flex items-center gap-1 rounded-full border border-hairline-strong px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-2"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Orders
           </Link>
-          <h1 data-testid="order-number" className="text-xl font-bold">
+          <h1 data-testid="order-number" className="text-xl font-bold text-ink md:text-2xl">
             {order.orderNumber}
           </h1>
           <OrderStatusBadge status={order.status} />
@@ -64,7 +67,7 @@ export default async function OrderDetailPage({
       </div>
 
       {/* Status timeline */}
-      <div className="rounded border border-hairline bg-surface p-4">
+      <div className="rounded-lg border border-hairline bg-surface p-4">
         {cancelled ? (
           <p className="text-sm font-medium text-accent">This order was cancelled.</p>
         ) : (
@@ -103,7 +106,7 @@ export default async function OrderDetailPage({
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         {/* Items */}
-        <div className="rounded border border-hairline bg-surface">
+        <div className="rounded-lg border border-hairline bg-surface">
           <div className="border-b border-hairline px-4 py-3">
             <h2 className="text-sm font-bold">Items</h2>
           </div>
@@ -140,7 +143,7 @@ export default async function OrderDetailPage({
 
         {/* Address + meta */}
         <aside className="space-y-4">
-          <div className="rounded border border-hairline bg-surface p-4 text-sm">
+          <div className="rounded-lg border border-hairline bg-surface p-4 text-sm">
             <h2 className="mb-2 text-sm font-bold">Delivery Address</h2>
             <div className="font-medium text-ink">{addr.fullName}</div>
             <div className="text-muted">{addr.phone}</div>
@@ -150,7 +153,7 @@ export default async function OrderDetailPage({
                 .join(", ")}
             </div>
           </div>
-          <div className="rounded border border-hairline bg-surface p-4 text-sm">
+          <div className="rounded-lg border border-hairline bg-surface p-4 text-sm">
             <h2 className="mb-2 text-sm font-bold">Payment</h2>
             <div className="text-muted">Cash on Delivery · {order.paymentStatus}</div>
             {order.note && (
