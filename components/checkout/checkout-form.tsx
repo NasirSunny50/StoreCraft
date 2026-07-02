@@ -4,6 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import { placeOrderAction, type PlaceOrderState } from "@/lib/actions/order";
 import { previewCoupon } from "@/lib/actions/coupon";
 import { Button } from "@/components/ui/button";
+import { AddressForm } from "@/components/checkout/address-form";
 
 export type AddressView = {
   id: string;
@@ -17,7 +18,23 @@ export type AddressView = {
   isDefault: boolean;
 };
 
-export function CheckoutForm({ addresses }: { addresses: AddressView[] }) {
+export type SummaryView = {
+  items: { id: string; name: string; quantity: number; lineTotal: string }[];
+  itemCount: number;
+  subtotal: string;
+  shipping: string;
+  total: string;
+};
+
+const FORM_ID = "checkout-form-el";
+
+export function CheckoutForm({
+  addresses,
+  summary,
+}: {
+  addresses: AddressView[];
+  summary: SummaryView;
+}) {
   const [state, formAction, pending] = useActionState<PlaceOrderState, FormData>(
     placeOrderAction,
     null,
@@ -46,114 +63,177 @@ export function CheckoutForm({ addresses }: { addresses: AddressView[] }) {
     addresses.find((a) => a.isDefault)?.id ?? addresses[0]?.id ?? "";
 
   return (
-    <form action={formAction} className="space-y-5" data-testid="checkout-form">
-      <section>
-        <h2 className="mb-2 text-sm font-bold text-ink">Delivery Address</h2>
-        <div className="space-y-2">
-          {addresses.map((a) => (
-            <label
-              key={a.id}
-              className="flex cursor-pointer gap-3 rounded border border-hairline bg-surface p-3 text-sm has-[:checked]:border-accent"
-            >
-              <input
-                type="radio"
-                name="addressId"
-                value={a.id}
-                defaultChecked={a.id === defaultId}
-                data-testid="checkout-address"
-                className="mt-1"
-              />
-              <span>
-                <span className="font-medium text-ink">{a.fullName}</span>
-                {a.isDefault && (
-                  <span className="ml-2 rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-semibold text-muted">
-                    Default
+    <div className="grid gap-4 lg:grid-cols-[1fr_360px] lg:gap-6">
+      {/* Left column */}
+      <div className="space-y-4">
+        <form id={FORM_ID} action={formAction} data-testid="checkout-form" className="space-y-4">
+          <section className="rounded-lg border border-hairline bg-surface p-4">
+            <h2 className="mb-3 text-base font-bold text-ink">Delivery Address</h2>
+            <div className="space-y-2">
+              {addresses.map((a) => (
+                <label
+                  key={a.id}
+                  className="flex cursor-pointer gap-3 rounded-lg border border-hairline bg-surface p-3 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent/5"
+                >
+                  <input
+                    type="radio"
+                    name="addressId"
+                    value={a.id}
+                    defaultChecked={a.id === defaultId}
+                    data-testid="checkout-address"
+                    className="mt-1 accent-accent"
+                  />
+                  <span>
+                    <span className="font-medium text-ink">{a.fullName}</span>
+                    {a.isDefault && (
+                      <span className="ml-2 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold text-muted">
+                        Default
+                      </span>
+                    )}
+                    <span className="block text-muted">{a.phone}</span>
+                    <span className="block text-muted">
+                      {[a.line1, a.line2, a.area, a.city, a.postcode]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </span>
                   </span>
-                )}
-                <span className="block text-muted">{a.phone}</span>
-                <span className="block text-muted">
-                  {[a.line1, a.line2, a.area, a.city, a.postcode]
-                    .filter(Boolean)
-                    .join(", ")}
-                </span>
-              </span>
+                </label>
+              ))}
+            </div>
+            {state?.fieldErrors?.addressId && (
+              <p className="mt-1 text-xs text-accent">
+                {state.fieldErrors.addressId[0]}
+              </p>
+            )}
+          </section>
+
+          <section className="rounded-lg border border-hairline bg-surface p-4">
+            <h2 className="mb-3 text-base font-bold text-ink">Payment Method</h2>
+            <label className="flex items-center gap-2 rounded-lg border border-accent bg-accent/5 p-3 text-sm">
+              <input type="radio" name="paymentMethod" value="COD" defaultChecked className="accent-accent" />
+              <span className="font-medium text-ink">Cash on Delivery (COD)</span>
             </label>
+            <p className="mt-2 text-xs text-muted">Pay in cash when your order arrives. Online payment is coming soon.</p>
+          </section>
+
+          <section className="rounded-lg border border-hairline bg-surface p-4">
+            <h2 className="mb-3 text-base font-bold text-ink">Order Note (optional)</h2>
+            <textarea
+              name="note"
+              rows={2}
+              data-testid="checkout-note"
+              placeholder="For example: Leave the parcel with the neighbor if not available…"
+              className="w-full rounded border border-hairline-strong px-3 py-2 text-sm outline-none focus:border-accent"
+            />
+          </section>
+        </form>
+
+        {/* Separate form — must stay outside the checkout <form> element. */}
+        <details className="rounded-lg border border-hairline bg-surface p-4">
+          <summary className="cursor-pointer text-sm font-medium text-link">
+            + Add a new address
+          </summary>
+          <div className="mt-3">
+            <AddressForm />
+          </div>
+        </details>
+      </div>
+
+      {/* Order Summary (controls join the form via the form attribute) */}
+      <aside className="h-fit rounded-lg border border-hairline bg-surface lg:sticky lg:top-32">
+        <div className="border-b border-hairline px-4 py-3">
+          <h2 className="text-base font-bold text-ink">Order Summary</h2>
+        </div>
+
+        <div className="divide-y divide-hairline px-4">
+          {summary.items.map((i) => (
+            <div key={i.id} className="flex justify-between gap-3 py-3 text-sm">
+              <span className="text-ink">
+                {i.name}
+                <span className="text-muted"> × {i.quantity}</span>
+              </span>
+              <span className="whitespace-nowrap font-medium">{i.lineTotal}</span>
+            </div>
           ))}
         </div>
-        {state?.fieldErrors?.addressId && (
-          <p className="mt-1 text-xs text-accent">
-            {state.fieldErrors.addressId[0]}
-          </p>
-        )}
-      </section>
 
-      <section>
-        <h2 className="mb-2 text-sm font-bold text-ink">Payment Method</h2>
-        <label className="flex items-center gap-2 rounded border border-accent bg-surface p-3 text-sm">
-          <input type="radio" name="paymentMethod" value="COD" defaultChecked />
-          <span className="font-medium">Cash on Delivery (COD)</span>
-        </label>
-      </section>
+        {/* Coupon */}
+        <div className="border-t border-hairline px-4 py-4">
+          <span className="mb-2 block text-sm font-semibold text-ink">Apply Coupon</span>
+          <input type="hidden" name="couponCode" value={applied?.code ?? ""} form={FORM_ID} />
+          <div className="flex gap-2">
+            <input
+              value={couponInput}
+              onChange={(e) => setCouponInput(e.target.value)}
+              placeholder="Coupon code"
+              data-testid="coupon-input"
+              className="min-w-0 flex-1 rounded-full border border-hairline-strong px-4 py-2 text-sm uppercase outline-none focus:border-accent"
+            />
+            <Button
+              type="button"
+              variant="navy"
+              loading={couponPending}
+              disabled={!couponInput.trim()}
+              data-testid="coupon-apply"
+              onClick={applyCoupon}
+              className="rounded-full"
+            >
+              Apply
+            </Button>
+          </div>
+          {applied && (
+            <p data-testid="coupon-applied" className="mt-2 text-sm text-green-700">
+              Coupon <strong>{applied.code}</strong> applied — discount {applied.discount}. New total {applied.total}.
+            </p>
+          )}
+          {couponError && (
+            <p data-testid="coupon-error" className="mt-2 text-sm text-accent">{couponError}</p>
+          )}
+        </div>
 
-      <section>
-        <h2 className="mb-2 text-sm font-bold text-ink">Coupon</h2>
-        <input type="hidden" name="couponCode" value={applied?.code ?? ""} />
-        <div className="flex gap-2">
-          <input
-            value={couponInput}
-            onChange={(e) => setCouponInput(e.target.value)}
-            placeholder="Coupon code"
-            data-testid="coupon-input"
-            className="w-48 rounded border border-hairline-strong px-3 py-2 text-sm uppercase"
-          />
+        {/* Totals */}
+        <div className="space-y-2.5 border-t border-hairline px-4 py-4 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted">Sub Total ({summary.itemCount} {summary.itemCount === 1 ? "item" : "items"})</span>
+            <span data-testid="summary-subtotal" className="font-medium">{summary.subtotal}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted">Delivery</span>
+            <span data-testid="summary-shipping" className="font-medium">{summary.shipping}</span>
+          </div>
+          {applied && (
+            <div className="flex justify-between">
+              <span className="text-muted">Discount ({applied.code})</span>
+              <span className="font-medium text-green-700">− {applied.discount}</span>
+            </div>
+          )}
+          <div className="flex justify-between border-t border-hairline pt-3 text-base font-bold">
+            <span className="text-ink">Total Amount</span>
+            <span data-testid="summary-total" className="text-accent">
+              {applied ? applied.total : summary.total}
+            </span>
+          </div>
+        </div>
+
+        <div className="px-4 pb-4">
+          {state?.error && (
+            <p data-testid="checkout-error" className="mb-2 rounded bg-red-50 px-3 py-2 text-sm text-accent">
+              {state.error}
+            </p>
+          )}
           <Button
-            type="button"
-            variant="soft"
-            loading={couponPending}
-            disabled={!couponInput.trim()}
-            data-testid="coupon-apply"
-            onClick={applyCoupon}
+            type="submit"
+            form={FORM_ID}
+            variant="accent"
+            size="lg"
+            loading={pending}
+            data-testid="place-order"
+            className="w-full rounded-full"
           >
-            Apply
+            {pending ? "Placing order…" : "Confirm & Place Order"}
           </Button>
         </div>
-        {applied && (
-          <p data-testid="coupon-applied" className="mt-1 text-sm text-green-700">
-            Coupon <strong>{applied.code}</strong> applied — discount {applied.discount}. New total {applied.total}.
-          </p>
-        )}
-        {couponError && (
-          <p data-testid="coupon-error" className="mt-1 text-sm text-accent">{couponError}</p>
-        )}
-      </section>
-
-      <section>
-        <h2 className="mb-2 text-sm font-bold text-ink">Order Note (optional)</h2>
-        <textarea
-          name="note"
-          rows={2}
-          data-testid="checkout-note"
-          placeholder="Any special instructions…"
-          className="w-full rounded border border-hairline-strong px-3 py-2 text-sm outline-none focus:border-accent"
-        />
-      </section>
-
-      {state?.error && (
-        <p data-testid="checkout-error" className="rounded bg-red-50 px-3 py-2 text-sm text-accent">
-          {state.error}
-        </p>
-      )}
-
-      <Button
-        type="submit"
-        variant="accent"
-        size="lg"
-        loading={pending}
-        data-testid="place-order"
-        className="w-full"
-      >
-        {pending ? "Placing order…" : "Place Order"}
-      </Button>
-    </form>
+      </aside>
+    </div>
   );
 }
