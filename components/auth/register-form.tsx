@@ -3,12 +3,48 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { registerAction, type AuthFormState } from "@/lib/actions/auth";
+import { Button } from "@/components/ui/button";
+
+function Field({
+  name,
+  label,
+  type,
+  autoComplete,
+  placeholder,
+  errors,
+}: {
+  name: string;
+  label: string;
+  type: string;
+  autoComplete: string;
+  placeholder?: string;
+  errors?: string[];
+}) {
+  return (
+    <div className="space-y-1">
+      <label htmlFor={name} className="block text-sm font-medium text-ink">
+        {label}
+      </label>
+      <input
+        id={name}
+        name={name}
+        type={type}
+        autoComplete={autoComplete}
+        required
+        placeholder={placeholder}
+        className="w-full rounded border border-hairline-strong bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+      />
+      {errors?.[0] && <p className="text-sm text-accent">{errors[0]}</p>}
+    </div>
+  );
+}
 
 export function RegisterForm() {
   const [state, formAction, pending] = useActionState<AuthFormState, FormData>(
     registerAction,
     null,
   );
+  const fe = state?.fieldErrors;
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
@@ -16,93 +52,30 @@ export function RegisterForm() {
         <p
           data-testid="form-error"
           role="alert"
-          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"
+          className="rounded bg-red-50 px-3 py-2 text-sm text-accent"
         >
           {state.error}
         </p>
       )}
 
-      <div className="space-y-1">
-        <label htmlFor="name" className="block text-sm font-medium">
-          Full name
-        </label>
-        <input
-          id="name"
-          name="name"
-          type="text"
-          autoComplete="name"
-          required
-          className="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-        />
-        {state?.fieldErrors?.name && (
-          <p className="text-sm text-red-600">{state.fieldErrors.name[0]}</p>
-        )}
-      </div>
+      <Field name="name" label="Full name" type="text" autoComplete="name" placeholder="Your name" errors={fe?.name} />
+      <Field name="email" label="Email" type="email" autoComplete="email" placeholder="you@example.com" errors={fe?.email} />
+      <Field name="password" label="Password" type="password" autoComplete="new-password" placeholder="At least 8 characters" errors={fe?.password} />
+      <Field name="confirmPassword" label="Confirm password" type="password" autoComplete="new-password" placeholder="Repeat the password" errors={fe?.confirmPassword} />
 
-      <div className="space-y-1">
-        <label htmlFor="email" className="block text-sm font-medium">
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          className="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-        />
-        {state?.fieldErrors?.email && (
-          <p className="text-sm text-red-600">{state.fieldErrors.email[0]}</p>
-        )}
-      </div>
-
-      <div className="space-y-1">
-        <label htmlFor="password" className="block text-sm font-medium">
-          Password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required
-          className="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-        />
-        {state?.fieldErrors?.password && (
-          <p className="text-sm text-red-600">{state.fieldErrors.password[0]}</p>
-        )}
-      </div>
-
-      <div className="space-y-1">
-        <label htmlFor="confirmPassword" className="block text-sm font-medium">
-          Confirm password
-        </label>
-        <input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          autoComplete="new-password"
-          required
-          className="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-        />
-        {state?.fieldErrors?.confirmPassword && (
-          <p className="text-sm text-red-600">
-            {state.fieldErrors.confirmPassword[0]}
-          </p>
-        )}
-      </div>
-
-      <button
+      <Button
         type="submit"
-        disabled={pending}
-        className="w-full rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        variant="accent"
+        size="lg"
+        loading={pending}
+        className="w-full rounded-full"
       >
         {pending ? "Creating account…" : "Create account"}
-      </button>
+      </Button>
 
-      <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+      <p className="text-center text-sm text-muted">
         Already have an account?{" "}
-        <Link href="/login" className="text-blue-600 hover:underline">
+        <Link href="/login" className="font-medium text-link hover:text-accent">
           Login
         </Link>
       </p>

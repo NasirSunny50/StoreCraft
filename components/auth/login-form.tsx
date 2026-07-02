@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { loginAction, type AuthFormState } from "@/lib/actions/auth";
+import { Button } from "@/components/ui/button";
 
 export function LoginForm() {
   const [state, formAction, pending] = useActionState<AuthFormState, FormData>(
@@ -16,14 +17,14 @@ export function LoginForm() {
         <p
           data-testid="form-error"
           role="alert"
-          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"
+          className="rounded bg-red-50 px-3 py-2 text-sm text-accent"
         >
           {state.error}
         </p>
       )}
 
       <div className="space-y-1">
-        <label htmlFor="email" className="block text-sm font-medium">
+        <label htmlFor="email" className="block text-sm font-medium text-ink">
           Email
         </label>
         <input
@@ -32,15 +33,16 @@ export function LoginForm() {
           type="email"
           autoComplete="email"
           required
-          className="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          placeholder="you@example.com"
+          className="w-full rounded border border-hairline-strong bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
         />
         {state?.fieldErrors?.email && (
-          <p className="text-sm text-red-600">{state.fieldErrors.email[0]}</p>
+          <p className="text-sm text-accent">{state.fieldErrors.email[0]}</p>
         )}
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="password" className="block text-sm font-medium">
+        <label htmlFor="password" className="block text-sm font-medium text-ink">
           Password
         </label>
         <input
@@ -49,24 +51,27 @@ export function LoginForm() {
           type="password"
           autoComplete="current-password"
           required
-          className="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+          placeholder="Your password"
+          className="w-full rounded border border-hairline-strong bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
         />
         {state?.fieldErrors?.password && (
-          <p className="text-sm text-red-600">{state.fieldErrors.password[0]}</p>
+          <p className="text-sm text-accent">{state.fieldErrors.password[0]}</p>
         )}
       </div>
 
-      <button
+      <Button
         type="submit"
-        disabled={pending}
-        className="w-full rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        variant="accent"
+        size="lg"
+        loading={pending}
+        className="w-full rounded-full"
       >
         {pending ? "Signing in…" : "Sign in"}
-      </button>
+      </Button>
 
-      <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+      <p className="text-center text-sm text-muted">
         No account?{" "}
-        <Link href="/register" className="text-blue-600 hover:underline">
+        <Link href="/register" className="font-medium text-link hover:text-accent">
           Register
         </Link>
       </p>
