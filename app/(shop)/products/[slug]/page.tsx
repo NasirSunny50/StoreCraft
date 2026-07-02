@@ -10,6 +10,7 @@ import { ProductGallery } from "@/components/product/product-gallery";
 import { ProductSection } from "@/components/product/product-section";
 import { StarRating } from "@/components/product/star-rating";
 import { ProductBuyBox } from "@/components/product/product-buy-box";
+import { ProductTabs } from "@/components/product/product-tabs";
 
 export async function generateMetadata({
   params,
@@ -63,82 +64,60 @@ export default async function ProductDetailPage({
           <ProductGallery images={product.images} name={product.name} />
 
           <div>
-            <h1 data-testid="product-title" className="text-xl font-bold leading-snug text-ink md:text-2xl">
-              {product.name}
-            </h1>
-
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-              {product.ratingCount > 0 ? (
-                <StarRating value={product.ratingAvg} count={product.ratingCount} />
-              ) : (
-                <span>No reviews yet</span>
-              )}
-              <span>
-                Brand:{" "}
+            {/* Brand + rating row */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-bold uppercase tracking-widest text-link">
                 {product.brand ? (
-                  <Link href={`/brand/${product.brand.slug}`} className="text-link hover:text-accent">
+                  <Link href={`/brand/${product.brand.slug}`} className="hover:text-accent">
                     {product.brand.name}
                   </Link>
                 ) : (
                   "Generic"
                 )}
               </span>
-              <span>SKU: {sku}</span>
+              {product.ratingCount > 0 ? (
+                <StarRating value={product.ratingAvg} count={product.ratingCount} />
+              ) : (
+                <span className="text-xs text-muted">No reviews yet</span>
+              )}
             </div>
 
-            {/* Price box */}
-            <div className="mt-4 rounded border border-hairline bg-surface-2 p-4">
+            <h1 data-testid="product-title" className="mt-1 text-xl font-bold leading-snug text-ink md:text-2xl">
+              {product.name}
+            </h1>
+
+            {/* Inline price row */}
+            <div className="mt-3 flex flex-wrap items-baseline gap-2">
+              <span data-testid="detail-price" className="text-3xl font-bold text-accent">
+                {formatBDT(product.price)}
+              </span>
+              <span className="text-xs text-muted">(Cash Price)</span>
               {product.comparePrice && (
-                <div className="text-sm text-muted">
-                  Regular Price:{" "}
-                  <span className="line-through">{formatBDT(product.comparePrice)}</span>
-                </div>
+                <span className="text-sm text-muted line-through">{formatBDT(product.comparePrice)}</span>
               )}
-              <div className="flex items-baseline gap-2">
-                <span className="text-sm text-muted">Price:</span>
-                <span data-testid="detail-price" className="text-3xl font-bold text-accent">
-                  {formatBDT(product.price)}
-                </span>
-              </div>
-              <div className="mt-2">
+            </div>
+
+            {/* Availability | Code row */}
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-hairline pb-4 text-sm">
+              <span className="text-muted">
+                Availability:{" "}
                 <span
                   data-testid="stock-status"
-                  className={`inline-flex items-center gap-1.5 text-sm font-semibold ${
+                  className={`inline-flex items-center gap-1.5 font-semibold ${
                     inStock ? "text-green-600" : "text-accent"
                   }`}
                 >
-                  <span className={`h-2 w-2 rounded-full ${inStock ? "bg-green-600" : "bg-accent"}`} />
                   {inStock ? (lowStock ? `Only ${product.stock} left` : "In Stock") : "Stock Out"}
                 </span>
-              </div>
+              </span>
+              <span className="hidden text-hairline-strong sm:inline">|</span>
+              <span className="text-muted">
+                Code: <span className="font-medium text-ink">{sku}</span>
+              </span>
             </div>
 
-            {/* Key features */}
-            {product.specs.length > 0 && (
-              <div className="mt-4">
-                <h3 className="mb-2 text-sm font-bold text-ink">Key Features</h3>
-                <ul className="space-y-1 text-sm text-ink/80">
-                  {product.specs.slice(0, 5).map((s) => (
-                    <li key={s.id} className="flex gap-2">
-                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
-                      <span>
-                        <span className="text-muted">{s.key}:</span> {s.value}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {product.warranty && (
-              <div className="mt-4 flex items-center gap-2 text-sm">
-                <ShieldCheck className="h-4 w-4 text-accent" />
-                <span className="text-ink" data-testid="product-warranty">{product.warranty}</span>
-              </div>
-            )}
-
-            {/* Buy box */}
-            <div className="mt-5 max-w-md">
+            {/* Buy box (color card + qty + sticky mobile actions) */}
+            <div className="mt-4 max-w-md">
               <ProductBuyBox
                 productId={product.id}
                 stock={product.stock}
@@ -148,42 +127,69 @@ export default async function ProductDetailPage({
               />
             </div>
 
-            {/* Trust strip */}
-            <div className="mt-5 flex flex-wrap gap-4 border-t border-hairline pt-4 text-xs text-muted">
-              <span className="flex items-center gap-1.5"><Truck className="h-4 w-4" /> Cash on Delivery</span>
-              <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4" /> Authentic Product</span>
-              <span className="flex items-center gap-1.5"><Check className="h-4 w-4" /> 7-Day Replacement</span>
+            {/* Info strips */}
+            <div className="mt-5 divide-y divide-hairline rounded-lg border border-hairline text-sm">
+              {product.warranty && (
+                <div className="flex items-center gap-2.5 px-4 py-3">
+                  <ShieldCheck className="h-4 w-4 shrink-0 text-accent" />
+                  <span className="text-ink" data-testid="product-warranty">{product.warranty}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2.5 px-4 py-3">
+                <Truck className="h-4 w-4 shrink-0 text-accent" />
+                <span className="text-ink">Cash on Delivery available — pay when you receive</span>
+              </div>
+              <div className="flex items-center gap-2.5 px-4 py-3">
+                <Check className="h-4 w-4 shrink-0 text-accent" />
+                <span className="text-ink">7-Day Replacement · Authentic Product</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Description + Specification */}
-      <div className="rounded border border-hairline bg-surface">
-        <div className="border-b border-hairline px-4 py-3">
-          <h2 className="flex items-center gap-2 text-base font-bold">
-            <span className="h-4 w-1 rounded-sm bg-accent" />
-            Specification
-          </h2>
-        </div>
-        <div className="space-y-4 p-4">
-          <p className="text-sm leading-relaxed text-ink/80">{product.description}</p>
-          {product.specs.length > 0 && (
-            <table data-testid="spec-table" className="w-full border border-hairline text-sm">
-              <tbody>
-                {product.specs.map((spec, i) => (
-                  <tr key={spec.id} className={i % 2 ? "bg-surface-2" : "bg-surface"}>
-                    <th className="w-1/3 border border-hairline px-3 py-2 text-left font-medium text-muted">
-                      {spec.key}
-                    </th>
-                    <td className="border border-hairline px-3 py-2">{spec.value}</td>
+      {/* Specification / Description / Warranty tabs */}
+      <ProductTabs
+        specification={
+          <div className="space-y-3">
+            <h3 className="text-base font-bold text-ink">Specification</h3>
+            {product.specs.length > 0 ? (
+              <table data-testid="spec-table" className="w-full border border-hairline text-sm">
+                <tbody>
+                  <tr className="bg-surface">
+                    <th className="w-1/3 border border-hairline px-3 py-2 text-left font-medium text-muted">Brand</th>
+                    <td className="border border-hairline px-3 py-2">{product.brand?.name ?? "Generic"}</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
+                  {product.specs.map((spec, i) => (
+                    <tr key={spec.id} className={i % 2 ? "bg-surface" : "bg-surface-2"}>
+                      <th className="w-1/3 border border-hairline px-3 py-2 text-left font-medium text-muted">
+                        {spec.key}
+                      </th>
+                      <td className="border border-hairline px-3 py-2">{spec.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p data-testid="spec-table" className="text-sm text-muted">No specifications listed.</p>
+            )}
+          </div>
+        }
+        description={
+          <div className="space-y-3">
+            <h3 className="text-base font-bold text-ink">Description</h3>
+            <p className="text-sm leading-relaxed text-ink/80">{product.description}</p>
+          </div>
+        }
+        warranty={
+          <div className="space-y-3">
+            <h3 className="text-base font-bold text-ink">Warranty</h3>
+            <p className="text-sm leading-relaxed text-ink/80">
+              {product.warranty ?? "No brand warranty. 7-day replacement guarantee applies."}
+            </p>
+          </div>
+        }
+      />
 
       {/* Reviews */}
       <div className="rounded border border-hairline bg-surface">

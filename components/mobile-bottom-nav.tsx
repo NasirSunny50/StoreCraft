@@ -12,6 +12,9 @@ import { cn } from "@/lib/utils/cn";
 export function MobileBottomNav({ isAuthed }: { isAuthed: boolean }) {
   const pathname = usePathname();
 
+  // Product detail pages show a sticky buy bar instead (marketplace pattern).
+  if (pathname.startsWith("/products/")) return null;
+
   const items = [
     { href: "/", label: "Home", icon: Home, match: (p: string) => p === "/" },
     { href: "/products", label: "Categories", icon: LayoutGrid, match: (p: string) => p.startsWith("/products") || p.startsWith("/category") },
