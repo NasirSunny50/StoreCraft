@@ -32,7 +32,7 @@ export function ProductResults({
     return (
       <div
         data-testid="empty-state"
-        className="rounded-lg border border-dashed border-gray-300 py-16 text-center text-gray-500 dark:border-gray-700"
+        className="rounded-lg border border-dashed border-hairline-strong bg-surface py-16 text-center text-muted"
       >
         <p className="text-lg font-medium">No products found</p>
         <p className="text-sm">Try adjusting your filters or search.</p>
@@ -58,7 +58,7 @@ export function ProductResults({
             onClick={loadMore}
             disabled={pending}
             data-testid="load-more"
-            className="rounded-md border border-gray-300 px-6 py-2 text-sm font-medium hover:bg-gray-100 disabled:opacity-50 dark:border-gray-700 dark:hover:bg-gray-800"
+            className="rounded-full border border-accent px-8 py-2 text-sm font-medium text-accent hover:bg-accent hover:text-white disabled:opacity-50"
           >
             {pending ? "Loading…" : "Load more"}
           </button>

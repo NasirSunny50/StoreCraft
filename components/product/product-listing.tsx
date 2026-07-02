@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import {
   getProducts,
   getProductCount,
@@ -7,6 +9,7 @@ import {
 import { toCardData } from "@/lib/view/product-card-data";
 import { ProductFilters } from "@/components/product/product-filters";
 import { ProductResults } from "@/components/product/product-results";
+import { ListingShell } from "@/components/product/listing-shell";
 import type { ProductFilter } from "@/lib/validators/product";
 
 export async function ProductListing({
@@ -29,13 +32,27 @@ export async function ProductListing({
   const initialItems = page.items.map(toCardData);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold" data-testid="listing-heading">
+    <div>
+      {/* Breadcrumb */}
+      <nav className="mb-2 flex items-center gap-1 text-xs text-muted">
+        <Link href="/" className="hover:text-accent">Home</Link>
+        <ChevronRight className="h-3 w-3" />
+        <span className="text-ink">{heading}</span>
+      </nav>
+
+      <h1 className="text-2xl font-bold text-ink md:text-3xl" data-testid="listing-heading">
         {heading}
       </h1>
+      <p className="mb-4 mt-1 text-sm text-muted">
+        Showing:{" "}
+        <span className="font-semibold text-ink" data-testid="result-count">
+          {count} {count === 1 ? "product" : "products"}
+        </span>
+      </p>
 
-      <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-        <aside>
+      <ListingShell
+        sort={filter.sort}
+        filters={
           <ProductFilters
             filter={filter}
             categories={categories}
@@ -43,20 +60,15 @@ export async function ProductListing({
             lockCategory={lockCategory}
             lockBrand={lockBrand}
           />
-        </aside>
-
-        <div className="space-y-4">
-          <p className="text-sm text-gray-500" data-testid="result-count">
-            {count} {count === 1 ? "product" : "products"}
-          </p>
-          <ProductResults
-            key={JSON.stringify(filter)}
-            initialItems={initialItems}
-            initialCursor={page.nextCursor}
-            filter={filter}
-          />
-        </div>
-      </div>
+        }
+      >
+        <ProductResults
+          key={JSON.stringify(filter)}
+          initialItems={initialItems}
+          initialCursor={page.nextCursor}
+          filter={filter}
+        />
+      </ListingShell>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import type { ProductFilter } from "@/lib/validators/product";
 
 type Option = { id: string; name: string; slug: string };
 
-const SORT_OPTIONS: { value: ProductFilter["sort"]; label: string }[] = [
+export const SORT_OPTIONS: { value: ProductFilter["sort"]; label: string }[] = [
   { value: "newest", label: "Newest" },
   { value: "price-asc", label: "Price: Low to High" },
   { value: "price-desc", label: "Price: High to Low" },
@@ -49,7 +49,7 @@ export function ProductFilters({
         e.preventDefault();
         apply(e.currentTarget);
       }}
-      className="space-y-4 rounded-lg border border-gray-200 p-4 text-sm dark:border-gray-800"
+      className="space-y-4 rounded-lg border border-hairline bg-surface p-4 text-sm lg:sticky lg:top-32"
     >
       <div className="space-y-1">
         <label htmlFor="q" className="block font-medium">
@@ -62,7 +62,7 @@ export function ProductFilters({
           defaultValue={filter.q ?? ""}
           placeholder="Search products…"
           data-testid="filter-q"
-          className="w-full rounded-md border border-gray-300 px-2 py-1 dark:border-gray-700 dark:bg-gray-900"
+          className="w-full rounded border border-hairline-strong bg-surface px-2 py-1.5"
         />
       </div>
 
@@ -76,7 +76,7 @@ export function ProductFilters({
             name="category"
             defaultValue={filter.category ?? ""}
             data-testid="filter-category"
-            className="w-full rounded-md border border-gray-300 px-2 py-1 dark:border-gray-700 dark:bg-gray-900"
+            className="w-full rounded border border-hairline-strong bg-surface px-2 py-1.5"
           >
             <option value="">All categories</option>
             {categories.map((c) => (
@@ -98,7 +98,7 @@ export function ProductFilters({
             name="brand"
             defaultValue={filter.brand ?? ""}
             data-testid="filter-brand"
-            className="w-full rounded-md border border-gray-300 px-2 py-1 dark:border-gray-700 dark:bg-gray-900"
+            className="w-full rounded border border-hairline-strong bg-surface px-2 py-1.5"
           >
             <option value="">All brands</option>
             {brands.map((b) => (
@@ -120,7 +120,7 @@ export function ProductFilters({
             defaultValue={filter.minPrice ?? ""}
             placeholder="Min"
             data-testid="filter-min-price"
-            className="w-full rounded-md border border-gray-300 px-2 py-1 dark:border-gray-700 dark:bg-gray-900"
+            className="w-full rounded border border-hairline-strong bg-surface px-2 py-1.5"
           />
           <span>–</span>
           <input
@@ -130,7 +130,7 @@ export function ProductFilters({
             defaultValue={filter.maxPrice ?? ""}
             placeholder="Max"
             data-testid="filter-max-price"
-            className="w-full rounded-md border border-gray-300 px-2 py-1 dark:border-gray-700 dark:bg-gray-900"
+            className="w-full rounded border border-hairline-strong bg-surface px-2 py-1.5"
           />
         </div>
       </div>
@@ -144,7 +144,7 @@ export function ProductFilters({
           name="minRating"
           defaultValue={filter.minRating ? String(filter.minRating) : ""}
           data-testid="filter-rating"
-          className="w-full rounded-md border border-gray-300 px-2 py-1 dark:border-gray-700 dark:bg-gray-900"
+          className="w-full rounded border border-hairline-strong bg-surface px-2 py-1.5"
         >
           <option value="">Any rating</option>
           <option value="4">4★ &amp; up</option>
@@ -173,7 +173,7 @@ export function ProductFilters({
           name="sort"
           defaultValue={filter.sort}
           data-testid="filter-sort"
-          className="w-full rounded-md border border-gray-300 px-2 py-1 dark:border-gray-700 dark:bg-gray-900"
+          className="w-full rounded border border-hairline-strong bg-surface px-2 py-1.5"
         >
           {SORT_OPTIONS.map((s) => (
             <option key={s.value} value={s.value}>
@@ -187,7 +187,7 @@ export function ProductFilters({
         <button
           type="submit"
           data-testid="apply-filters"
-          className="flex-1 rounded-md bg-blue-600 px-3 py-1.5 font-medium text-white hover:bg-blue-700"
+          className="flex-1 rounded bg-accent px-3 py-1.5 font-medium text-white hover:bg-accent-strong"
         >
           Apply
         </button>
@@ -195,7 +195,7 @@ export function ProductFilters({
           type="button"
           onClick={() => router.push(pathname)}
           data-testid="clear-filters"
-          className="rounded-md border border-gray-300 px-3 py-1.5 font-medium hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+          className="rounded border border-hairline-strong px-3 py-1.5 font-medium hover:bg-surface-2"
         >
           Clear
         </button>
