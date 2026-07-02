@@ -46,7 +46,7 @@ export function CartItemRow({ item }: { item: CartItemView }) {
       data-slug={item.slug}
       aria-busy={pending || undefined}
       className={cn(
-        "flex flex-wrap items-center gap-4 border-b border-hairline py-4 transition-opacity",
+        "flex flex-wrap items-center gap-4 rounded-lg border border-hairline bg-surface p-3 transition-opacity sm:p-4",
         pending && "opacity-60",
       )}
     >
@@ -69,14 +69,14 @@ export function CartItemRow({ item }: { item: CartItemView }) {
 
       {/* Controls wrap to their own full-width row on mobile, inline on sm+. */}
       <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center rounded-full border border-hairline-strong">
           <button
             type="button"
             aria-label="Decrease quantity"
             data-testid="qty-decrease"
             disabled={pending}
             onClick={() => setQty(item.quantity - 1)}
-            className="h-8 w-8 rounded border border-hairline-strong disabled:opacity-50"
+            className="h-8 w-8 text-muted hover:text-ink disabled:opacity-50"
           >
             −
           </button>
@@ -89,7 +89,7 @@ export function CartItemRow({ item }: { item: CartItemView }) {
             data-testid="qty-increase"
             disabled={pending || item.quantity >= item.stock}
             onClick={() => setQty(item.quantity + 1)}
-            className="h-8 w-8 rounded border border-hairline-strong disabled:opacity-50"
+            className="h-8 w-8 text-muted hover:text-ink disabled:opacity-50"
           >
             +
           </button>
