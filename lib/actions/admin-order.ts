@@ -4,6 +4,7 @@ import type { OrderStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/auth-guard";
+import { notifyOrderStatus } from "@/lib/notify-order";
 
 const VALID: OrderStatus[] = [
   "PENDING",
@@ -64,6 +65,9 @@ export async function updateOrderStatus(
         },
       });
     });
+
+    // After the transaction committed; never throws.
+    await notifyOrderStatus(orderId, status, note);
 
     revalidatePath("/admin/orders");
     revalidatePath(`/admin/orders/${orderId}`);

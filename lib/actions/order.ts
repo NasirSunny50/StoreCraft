@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth-guard";
 import { createOrderForUser, cancelOrder, CheckoutError } from "@/lib/orders";
+import { notifyOrderPlaced, notifyOrderStatus } from "@/lib/notify-order";
 import { placeOrderSchema } from "@/lib/validators/checkout";
 
 export type PlaceOrderState = {
@@ -35,6 +36,8 @@ export async function placeOrderAction(
       couponCode: parsed.data.couponCode,
     });
     orderNumber = order.orderNumber;
+    // After the transaction committed; never throws.
+    await notifyOrderPlaced(order.id);
   } catch (e) {
     if (e instanceof CheckoutError) return { error: e.message };
     throw e;
@@ -56,6 +59,7 @@ export async function cancelOrderAction(
     if (e instanceof CheckoutError) return { ok: false, error: e.message };
     throw e;
   }
+  await notifyOrderStatus(orderId, "CANCELLED", "Cancelled by customer");
   revalidatePath("/orders");
   revalidatePath("/", "layout");
   return { ok: true };
