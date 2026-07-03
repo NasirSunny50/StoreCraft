@@ -60,7 +60,10 @@ export async function placeOrderAction(
   if (online) {
     try {
       const { gatewayUrl } = await startSslcommerzPayment(order.id);
-      revalidatePath("/", "layout");
+      // NOTE: do NOT revalidate here — a layout refresh would re-render this
+      // (now empty) cart's checkout page and unmount the component whose effect
+      // performs the client redirect, cancelling it. The cart is cleared in the
+      // DB already; the badge refreshes on the next server render (on return).
       return { redirectUrl: gatewayUrl };
     } catch {
       // Init failed — release the reserved stock so the customer can retry.
