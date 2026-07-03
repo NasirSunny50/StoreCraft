@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight, PackageOpen } from "lucide-react";
 import { requireAuth } from "@/lib/auth-guard";
 import { getUserOrders } from "@/lib/queries/order";
+import { paymentMethodLabel } from "@/lib/order-math";
 import { formatBDT } from "@/lib/utils/money";
 import { OrderStatusBadge } from "@/components/order/order-status-badge";
 
@@ -59,7 +60,7 @@ export default async function OrdersPage({
               </div>
               <div className="text-right">
                 <div className="font-bold text-accent">{formatBDT(order.total)}</div>
-                <div className="text-xs text-muted">Cash on Delivery</div>
+                <div className="text-xs text-muted">{paymentMethodLabel(order.paymentMethod)}</div>
               </div>
             </Link>
           ))}

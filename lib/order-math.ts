@@ -30,6 +30,11 @@ export function canCancelOrder(status: OrderStatus): boolean {
   return status === "PENDING";
 }
 
+/** Human label for a payment method. */
+export function paymentMethodLabel(method: string): string {
+  return method === "SSLCOMMERZ" ? "Online Payment" : "Cash on Delivery";
+}
+
 export function formatOrderNumber(year: number, seq: number): string {
   return `ORD-${year}-${String(seq).padStart(6, "0")}`;
 }

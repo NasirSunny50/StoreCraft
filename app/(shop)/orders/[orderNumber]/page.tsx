@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CheckCircle2, ArrowLeft } from "lucide-react";
 import { requireAuth } from "@/lib/auth-guard";
 import { getOrderByNumberForUser } from "@/lib/queries/order";
-import { canCancelOrder, ORDER_STATUS_FLOW } from "@/lib/order-math";
+import { canCancelOrder, ORDER_STATUS_FLOW, paymentMethodLabel } from "@/lib/order-math";
 import { formatBDT } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
 import { OrderStatusBadge } from "@/components/order/order-status-badge";
@@ -168,7 +168,7 @@ export default async function OrderDetailPage({
           </div>
           <div className="rounded-lg border border-hairline bg-surface p-4 text-sm">
             <h2 className="mb-2 text-sm font-bold">Payment</h2>
-            <div className="text-muted">Cash on Delivery · {order.paymentStatus}</div>
+            <div className="text-muted">{paymentMethodLabel(order.paymentMethod)} · {order.paymentStatus}</div>
             {order.note && (
               <p className="mt-2 text-muted">
                 <span className="font-medium text-ink">Note:</span> {order.note}
