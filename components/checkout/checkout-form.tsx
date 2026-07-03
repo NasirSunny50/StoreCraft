@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { placeOrderAction, type PlaceOrderState } from "@/lib/actions/order";
 import { previewCoupon } from "@/lib/actions/coupon";
 import { Button } from "@/components/ui/button";
@@ -31,14 +31,27 @@ const FORM_ID = "checkout-form-el";
 export function CheckoutForm({
   addresses,
   summary,
+  onlineEnabled = false,
 }: {
   addresses: AddressView[];
   summary: SummaryView;
+  onlineEnabled?: boolean;
 }) {
   const [state, formAction, pending] = useActionState<PlaceOrderState, FormData>(
     placeOrderAction,
     null,
   );
+
+  const [method, setMethod] = useState<"COD" | "SSLCOMMERZ">("COD");
+  const [redirecting, setRedirecting] = useState(false);
+
+  // Online payment: the action returns the gateway URL; send the browser there.
+  useEffect(() => {
+    if (state?.redirectUrl) {
+      setRedirecting(true);
+      window.location.href = state.redirectUrl;
+    }
+  }, [state]);
 
   const [couponInput, setCouponInput] = useState("");
   const [applied, setApplied] = useState<{ code: string; discount: string; total: string } | null>(null);
@@ -109,11 +122,43 @@ export function CheckoutForm({
 
           <section className="rounded-lg border border-hairline bg-surface p-4">
             <h2 className="mb-3 text-base font-bold text-ink">Payment Method</h2>
-            <label className="flex items-center gap-2 rounded-lg border border-accent bg-accent/5 p-3 text-sm">
-              <input type="radio" name="paymentMethod" value="COD" defaultChecked className="accent-accent" />
-              <span className="font-medium text-ink">Cash on Delivery (COD)</span>
-            </label>
-            <p className="mt-2 text-xs text-muted">Pay in cash when your order arrives. Online payment is coming soon.</p>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 rounded-lg border border-hairline p-3 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent/5">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="COD"
+                  checked={method === "COD"}
+                  onChange={() => setMethod("COD")}
+                  className="accent-accent"
+                />
+                <span className="font-medium text-ink">Cash on Delivery (COD)</span>
+              </label>
+              {onlineEnabled && (
+                <label
+                  className="flex items-center gap-2 rounded-lg border border-hairline p-3 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent/5"
+                  data-testid="pay-online"
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="SSLCOMMERZ"
+                    checked={method === "SSLCOMMERZ"}
+                    onChange={() => setMethod("SSLCOMMERZ")}
+                    className="accent-accent"
+                  />
+                  <span className="font-medium text-ink">
+                    Online Payment{" "}
+                    <span className="font-normal text-muted">— card · bKash · Nagad (SSLCommerz)</span>
+                  </span>
+                </label>
+              )}
+            </div>
+            <p className="mt-2 text-xs text-muted">
+              {method === "COD"
+                ? "Pay in cash when your order arrives."
+                : "You'll be redirected to SSLCommerz to complete payment securely, then back to your order."}
+            </p>
           </section>
 
           <section className="rounded-lg border border-hairline bg-surface p-4">
@@ -226,11 +271,17 @@ export function CheckoutForm({
             form={FORM_ID}
             variant="accent"
             size="lg"
-            loading={pending}
+            loading={pending || redirecting}
             data-testid="place-order"
             className="w-full rounded-full"
           >
-            {pending ? "Placing order…" : "Confirm & Place Order"}
+            {pending || redirecting
+              ? method === "SSLCOMMERZ"
+                ? "Redirecting to payment…"
+                : "Placing order…"
+              : method === "SSLCOMMERZ"
+                ? "Proceed to Payment"
+                : "Confirm & Place Order"}
           </Button>
         </div>
       </aside>

@@ -23,11 +23,11 @@ export default async function OrderDetailPage({
   searchParams,
 }: {
   params: Promise<{ orderNumber: string }>;
-  searchParams: Promise<{ placed?: string }>;
+  searchParams: Promise<{ placed?: string; payment?: string }>;
 }) {
   const session = await requireAuth();
   const { orderNumber } = await params;
-  const { placed } = await searchParams;
+  const { placed, payment } = await searchParams;
   const order = await getOrderByNumberForUser(session.user.id, orderNumber);
   if (!order) notFound();
 
@@ -47,6 +47,19 @@ export default async function OrderDetailPage({
             Thank you! Your order <strong>{order.orderNumber}</strong> has been
             placed. We&apos;ll contact you to confirm delivery.
           </span>
+        </div>
+      )}
+
+      {(payment === "failed" || payment === "cancelled" || payment === "error") && (
+        <div
+          data-testid="payment-notice"
+          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+        >
+          {payment === "cancelled"
+            ? "Payment was cancelled, so this order was not placed. You can try again from the cart."
+            : payment === "failed"
+              ? "Payment failed, so this order was not placed. Please try again or choose Cash on Delivery."
+              : "We couldn't confirm your payment. If money was deducted, it will be refunded; please contact support."}
         </div>
       )}
 

@@ -3,6 +3,7 @@ import { ArrowLeft, ShoppingCart, PackageCheck } from "lucide-react";
 import { requireAuth } from "@/lib/auth-guard";
 import { getCart, liveCartItems, cartSubtotal } from "@/lib/cart";
 import { getUserAddresses } from "@/lib/queries/address";
+import { sslcommerzConfigured } from "@/lib/sslcommerz";
 import { computeOrderTotals, SHIPPING_FEE } from "@/lib/order-math";
 import { formatBDT, multiply } from "@/lib/utils/money";
 import {
@@ -89,7 +90,7 @@ export default async function CheckoutPage() {
       </div>
 
       {addressViews.length > 0 ? (
-        <CheckoutForm addresses={addressViews} summary={summary} />
+        <CheckoutForm addresses={addressViews} summary={summary} onlineEnabled={sslcommerzConfigured()} />
       ) : (
         <div className="max-w-2xl rounded-lg border border-hairline bg-surface p-4">
           <p className="mb-3 text-sm text-muted" data-testid="checkout-no-address">

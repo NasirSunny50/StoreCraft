@@ -2,18 +2,13 @@ import type { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { orderPlacedEmail, orderStatusEmail } from "@/lib/email-templates";
+import { siteUrl } from "@/lib/site-url";
 import { formatBDT, multiply } from "@/lib/utils/money";
 
 /**
  * Order email notifications. Called AFTER the order transaction commits and
  * never throw — a notification failure must not break the order flow.
  */
-
-function siteUrl(): string {
-  if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL.replace(/\/$/, "");
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
-}
 
 export async function notifyOrderPlaced(orderId: string): Promise<void> {
   try {

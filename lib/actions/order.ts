@@ -3,13 +3,22 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth-guard";
-import { createOrderForUser, cancelOrder, CheckoutError } from "@/lib/orders";
+import {
+  createOrderForUser,
+  cancelOrder,
+  failOrderPaymentByNumber,
+  CheckoutError,
+} from "@/lib/orders";
+import { startSslcommerzPayment } from "@/lib/payment";
+import { sslcommerzConfigured } from "@/lib/sslcommerz";
 import { notifyOrderPlaced, notifyOrderStatus } from "@/lib/notify-order";
 import { placeOrderSchema } from "@/lib/validators/checkout";
 
 export type PlaceOrderState = {
   error?: string;
   fieldErrors?: Record<string, string[]>;
+  /** For online payment: the client redirects the browser to the gateway. */
+  redirectUrl?: string;
 } | null;
 
 export async function placeOrderAction(
@@ -28,25 +37,44 @@ export async function placeOrderAction(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  let orderNumber: string;
+  const online = parsed.data.paymentMethod === "SSLCOMMERZ";
+  if (online && !sslcommerzConfigured()) {
+    return { error: "Online payment is unavailable right now. Please choose Cash on Delivery." };
+  }
+
+  let order: { id: string; orderNumber: string };
   try {
-    const order = await createOrderForUser(session.user.id, {
+    order = await createOrderForUser(session.user.id, {
       addressId: parsed.data.addressId,
       note: parsed.data.note,
       couponCode: parsed.data.couponCode,
+      paymentMethod: parsed.data.paymentMethod,
     });
-    orderNumber = order.orderNumber;
-    // After the transaction committed; never throws.
-    await notifyOrderPlaced(order.id);
   } catch (e) {
     if (e instanceof CheckoutError) return { error: e.message };
     throw e;
   }
 
+  // Online payment: open a gateway session and hand the URL to the client.
+  // The confirmation email is sent only after payment is validated (callback).
+  if (online) {
+    try {
+      const { gatewayUrl } = await startSslcommerzPayment(order.id);
+      revalidatePath("/", "layout");
+      return { redirectUrl: gatewayUrl };
+    } catch {
+      // Init failed — release the reserved stock so the customer can retry.
+      await failOrderPaymentByNumber(order.orderNumber);
+      return { error: "Could not start online payment. Please try again or choose Cash on Delivery." };
+    }
+  }
+
+  // COD: confirm immediately.
+  await notifyOrderPlaced(order.id); // never throws
   revalidatePath("/cart");
   revalidatePath("/orders");
   revalidatePath("/", "layout"); // cart badge
-  redirect(`/orders/${orderNumber}?placed=1`);
+  redirect(`/orders/${order.orderNumber}?placed=1`);
 }
 
 export async function cancelOrderAction(

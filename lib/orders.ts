@@ -38,9 +38,16 @@ export type PlacedOrder = { id: string; orderNumber: string };
  * can never oversell. The whole thing runs in a transaction — any failure
  * (incl. an order-number race) rolls back stock too.
  */
+export type CreateOrderInput = {
+  addressId: string;
+  note?: string;
+  couponCode?: string;
+  paymentMethod?: "COD" | "SSLCOMMERZ";
+};
+
 export async function createOrderForUser(
   userId: string,
-  input: { addressId: string; note?: string; couponCode?: string },
+  input: CreateOrderInput,
 ): Promise<PlacedOrder> {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -56,7 +63,7 @@ export async function createOrderForUser(
 
 async function placeOnce(
   userId: string,
-  input: { addressId: string; note?: string; couponCode?: string },
+  input: CreateOrderInput,
 ): Promise<PlacedOrder> {
   // A JWT session stays valid until it expires, so re-check the block flag here
   // — a customer blocked mid-session must not be able to place orders.
@@ -151,7 +158,7 @@ async function placeOnce(
         discount,
         total,
         status: "PENDING",
-        paymentMethod: "COD",
+        paymentMethod: input.paymentMethod ?? "COD",
         paymentStatus: "UNPAID",
         note: input.note ?? null,
         items: {
@@ -181,6 +188,89 @@ async function placeOnce(
     await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
 
     return { id: order.id, orderNumber: order.orderNumber };
+  });
+}
+
+export type MarkPaidResult =
+  | { ok: true; orderId: string; newlyPaid: boolean }
+  | { ok: false; reason: "not-found" | "cancelled" | "amount-mismatch" };
+
+/**
+ * Mark an SSLCommerz order paid after server-side validation. Idempotent
+ * (re-running for an already-paid order is a no-op success) and amount-checked
+ * (a validated amount that doesn't match the order total is rejected). Only
+ * called from payment callbacks after validateSslcommerzPayment succeeds.
+ */
+export async function markOrderPaid(
+  orderNumber: string,
+  validatedAmount: string | null,
+): Promise<MarkPaidResult> {
+  return prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({ where: { orderNumber } });
+    if (!order) return { ok: false, reason: "not-found" };
+    if (order.paymentStatus === "PAID") {
+      return { ok: true, orderId: order.id, newlyPaid: false };
+    }
+    if (order.status === "CANCELLED") return { ok: false, reason: "cancelled" };
+
+    if (validatedAmount != null && !new Prisma.Decimal(validatedAmount).equals(order.total)) {
+      return { ok: false, reason: "amount-mismatch" };
+    }
+
+    const nextStatus = order.status === "PENDING" ? "CONFIRMED" : order.status;
+    await tx.order.update({
+      where: { id: order.id },
+      data: { paymentStatus: "PAID", status: nextStatus },
+    });
+    await tx.orderStatusLog.create({
+      data: {
+        orderId: order.id,
+        status: nextStatus,
+        note: "Payment received (SSLCommerz)",
+        changedBy: order.userId,
+      },
+    });
+    return { ok: true, orderId: order.id, newlyPaid: true };
+  });
+}
+
+/**
+ * System-initiated fail/cancel of an unpaid online order: restock and cancel.
+ * Never touches a paid or already-cancelled order. Used by the fail/cancel
+ * payment callbacks (verified via signature before calling).
+ */
+export async function failOrderPaymentByNumber(orderNumber: string): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({
+      where: { orderNumber },
+      include: { items: true },
+    });
+    if (!order) return;
+    if (order.paymentStatus === "PAID" || order.status === "CANCELLED") return;
+
+    for (const item of order.items) {
+      await tx.product.updateMany({
+        where: { id: item.productId },
+        data: { stock: { increment: item.quantity } },
+      });
+    }
+    await tx.stockLog.createMany({
+      data: order.items.map((i) => ({
+        productId: i.productId,
+        change: i.quantity,
+        reason: "CANCEL",
+        changedBy: order.userId,
+      })),
+    });
+    await tx.order.update({ where: { id: order.id }, data: { status: "CANCELLED" } });
+    await tx.orderStatusLog.create({
+      data: {
+        orderId: order.id,
+        status: "CANCELLED",
+        note: "Online payment failed or cancelled",
+        changedBy: order.userId,
+      },
+    });
   });
 }
 
