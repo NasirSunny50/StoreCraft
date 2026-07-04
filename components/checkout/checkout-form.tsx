@@ -32,10 +32,12 @@ export function CheckoutForm({
   addresses,
   summary,
   onlineEnabled = false,
+  defaultFullName,
 }: {
   addresses: AddressView[];
   summary: SummaryView;
   onlineEnabled?: boolean;
+  defaultFullName?: string;
 }) {
   const [state, formAction, pending] = useActionState<PlaceOrderState, FormData>(
     placeOrderAction,
@@ -179,7 +181,7 @@ export function CheckoutForm({
             + Add a new address
           </summary>
           <div className="mt-3">
-            <AddressForm />
+            <AddressForm defaultFullName={defaultFullName} />
           </div>
         </details>
       </div>

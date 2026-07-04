@@ -90,13 +90,18 @@ export default async function CheckoutPage() {
       </div>
 
       {addressViews.length > 0 ? (
-        <CheckoutForm addresses={addressViews} summary={summary} onlineEnabled={sslcommerzConfigured()} />
+        <CheckoutForm
+          addresses={addressViews}
+          summary={summary}
+          onlineEnabled={sslcommerzConfigured()}
+          defaultFullName={session.user.name ?? undefined}
+        />
       ) : (
         <div className="max-w-2xl rounded-lg border border-hairline bg-surface p-4">
           <p className="mb-3 text-sm text-muted" data-testid="checkout-no-address">
             Add a delivery address to continue.
           </p>
-          <AddressForm />
+          <AddressForm defaultFullName={session.user.name ?? undefined} />
         </div>
       )}
     </div>

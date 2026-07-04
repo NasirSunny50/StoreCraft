@@ -28,7 +28,7 @@ export default async function AddressesPage() {
         <AddressList addresses={views} />
         <div className="rounded border border-hairline bg-surface p-4">
           <h2 className="mb-3 text-sm font-bold">Add New Address</h2>
-          <AddressForm />
+          <AddressForm defaultFullName={session.user.name ?? undefined} />
         </div>
       </div>
     </div>

@@ -14,12 +14,14 @@ function Field({
   required,
   errors,
   type = "text",
+  defaultValue,
 }: {
   name: string;
   label: string;
   required?: boolean;
   errors?: string[];
   type?: string;
+  defaultValue?: string;
 }) {
   return (
     <div className="space-y-1">
@@ -30,6 +32,7 @@ function Field({
         id={name}
         name={name}
         type={type}
+        defaultValue={defaultValue}
         data-testid={`addr-${name}`}
         className="w-full rounded border border-hairline-strong px-3 py-2 text-sm outline-none focus:border-accent"
       />
@@ -38,7 +41,14 @@ function Field({
   );
 }
 
-export function AddressForm({ compact = false }: { compact?: boolean }) {
+export function AddressForm({
+  compact = false,
+  defaultFullName,
+}: {
+  compact?: boolean;
+  /** Prefill the name field (from the account) so customers don't retype it. */
+  defaultFullName?: string;
+}) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState<AddressFormState, FormData>(
     createAddressAction,
@@ -63,7 +73,7 @@ export function AddressForm({ compact = false }: { compact?: boolean }) {
       className="space-y-3"
     >
       <div className={compact ? "grid gap-3" : "grid gap-3 sm:grid-cols-2"}>
-        <Field name="fullName" label="Full name" required errors={fe?.fullName} />
+        <Field name="fullName" label="Full name" required errors={fe?.fullName} defaultValue={defaultFullName} />
         <Field name="phone" label="Phone" required errors={fe?.phone} />
       </div>
       <Field name="line1" label="Address line 1" required errors={fe?.line1} />
