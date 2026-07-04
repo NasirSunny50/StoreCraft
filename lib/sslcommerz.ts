@@ -19,8 +19,22 @@ function endpoints() {
   return process.env.SSLCOMMERZ_LIVE === "true" ? LIVE : SANDBOX;
 }
 
+/**
+ * Read the store credentials, trimming surrounding whitespace. A stray
+ * leading/trailing space (easy to introduce when pasting into a hosting
+ * dashboard) is silently tolerated by the session-init endpoint but rejected
+ * by the validation endpoint (returns INVALID_TRANSACTION) — which would let a
+ * paid order come back as "failed". Trimming here makes the creds robust to it.
+ */
+export function sslcommerzStoreId(): string {
+  return (process.env.SSLCOMMERZ_STORE_ID ?? "").trim();
+}
+export function sslcommerzStorePassword(): string {
+  return (process.env.SSLCOMMERZ_STORE_PASSWORD ?? "").trim();
+}
+
 export function sslcommerzConfigured(): boolean {
-  return Boolean(process.env.SSLCOMMERZ_STORE_ID && process.env.SSLCOMMERZ_STORE_PASSWORD);
+  return Boolean(sslcommerzStoreId() && sslcommerzStorePassword());
 }
 
 export class SslcommerzError extends Error {}
@@ -69,8 +83,8 @@ export function buildInitBody(
 
 /** Start a payment session; returns the hosted gateway URL to redirect to. */
 export async function initiateSslcommerzSession(p: InitParams): Promise<{ gatewayUrl: string }> {
-  const storeId = process.env.SSLCOMMERZ_STORE_ID;
-  const storePasswd = process.env.SSLCOMMERZ_STORE_PASSWORD;
+  const storeId = sslcommerzStoreId();
+  const storePasswd = sslcommerzStorePassword();
   if (!storeId || !storePasswd) throw new SslcommerzError("Payment gateway is not configured.");
 
   const res = await fetch(endpoints().session, {
@@ -96,8 +110,8 @@ export type ValidationResult = {
 
 /** Authoritative server-side check of a completed payment via its val_id. */
 export async function validateSslcommerzPayment(valId: string): Promise<ValidationResult> {
-  const storeId = process.env.SSLCOMMERZ_STORE_ID;
-  const storePasswd = process.env.SSLCOMMERZ_STORE_PASSWORD;
+  const storeId = sslcommerzStoreId();
+  const storePasswd = sslcommerzStorePassword();
   if (!storeId || !storePasswd) return { valid: false, amount: null, tranId: null, status: "NOT_CONFIGURED" };
 
   const url = new URL(endpoints().validation);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { verifySslcommerzSignature } from "@/lib/sslcommerz";
+import { verifySslcommerzSignature, sslcommerzStorePassword } from "@/lib/sslcommerz";
 import { failOrderPaymentByNumber } from "@/lib/orders";
 import { siteUrl } from "@/lib/site-url";
 
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     for (const [k, v] of form.entries()) fields[k] = String(v);
     tranId = fields.tran_id ?? "";
 
-    const storePasswd = process.env.SSLCOMMERZ_STORE_PASSWORD ?? "";
+    const storePasswd = sslcommerzStorePassword();
     if (tranId && verifySslcommerzSignature(fields, storePasswd)) {
       await failOrderPaymentByNumber(tranId);
     }
