@@ -217,15 +217,17 @@ export async function markOrderPaid(
       return { ok: false, reason: "amount-mismatch" };
     }
 
-    const nextStatus = order.status === "PENDING" ? "CONFIRMED" : order.status;
+    // Payment does NOT auto-confirm the order — staff confirm it by phone. The
+    // order's status is left unchanged (a paid order stays PENDING until it's
+    // manually confirmed from the admin portal).
     await tx.order.update({
       where: { id: order.id },
-      data: { paymentStatus: "PAID", status: nextStatus },
+      data: { paymentStatus: "PAID" },
     });
     await tx.orderStatusLog.create({
       data: {
         orderId: order.id,
-        status: nextStatus,
+        status: order.status,
         note: "Payment received (SSLCommerz)",
         changedBy: order.userId,
       },
@@ -287,6 +289,11 @@ export async function cancelOrder(
     if (!order) throw new CheckoutError("Order not found.");
     if (!canCancelOrder(order.status)) {
       throw new CheckoutError("Only pending orders can be cancelled.");
+    }
+    if (order.paymentStatus === "PAID") {
+      throw new CheckoutError(
+        "This order has already been paid — please contact support to cancel it.",
+      );
     }
 
     for (const item of order.items) {

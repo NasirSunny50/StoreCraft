@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, ArrowLeft } from "lucide-react";
+import { CheckCircle2, ArrowLeft, Phone } from "lucide-react";
 import { requireAuth } from "@/lib/auth-guard";
 import { getOrderByNumberForUser } from "@/lib/queries/order";
 import { canCancelOrder, ORDER_STATUS_FLOW, paymentMethodLabel } from "@/lib/order-math";
@@ -41,6 +41,9 @@ export default async function OrderDetailPage({
     order.paymentMethod === "SSLCOMMERZ" &&
     order.paymentStatus === "UNPAID" &&
     order.status !== "CANCELLED";
+  // A paid order is never customer-cancellable (it would need a refund) — those
+  // are handled by staff via the admin portal.
+  const canCancel = canCancelOrder(order.status) && order.paymentStatus !== "PAID";
 
   return (
     <div className="space-y-4">
@@ -52,7 +55,20 @@ export default async function OrderDetailPage({
           <CheckCircle2 className="h-5 w-5" />
           <span>
             Thank you! Your order <strong>{order.orderNumber}</strong> has been
-            placed. We&apos;ll contact you to confirm delivery.
+            placed.
+          </span>
+        </div>
+      )}
+
+      {order.status === "PENDING" && (
+        <div
+          data-testid="pending-confirmation"
+          className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800"
+        >
+          <Phone className="h-5 w-5 shrink-0" />
+          <span>
+            Your order is pending confirmation — we&apos;ll call you shortly to
+            confirm it.
           </span>
         </div>
       )}
@@ -83,10 +99,10 @@ export default async function OrderDetailPage({
           </h1>
           <OrderStatusBadge status={order.status} />
         </div>
-        {(canRetryPayment || canCancelOrder(order.status)) && (
+        {(canRetryPayment || canCancel) && (
           <div className="flex items-start gap-2">
             {canRetryPayment && <RetryPaymentButton orderId={order.id} />}
-            {canCancelOrder(order.status) && <CancelOrderButton orderId={order.id} />}
+            {canCancel && <CancelOrderButton orderId={order.id} />}
           </div>
         )}
       </div>
