@@ -42,6 +42,7 @@ export async function notifyOrderPlaced(orderId: string): Promise<void> {
           .join(", "),
       ],
       orderUrl: `${siteUrl()}/orders/${order.orderNumber}`,
+      paid: order.paymentStatus === "PAID",
     });
     await sendEmail({ to: order.user.email, subject, html });
   } catch (e) {

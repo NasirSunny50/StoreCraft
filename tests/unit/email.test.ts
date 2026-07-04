@@ -143,17 +143,29 @@ describe("orderPlacedEmail", () => {
     total: "৳75,760.00",
     addressLines: ["Rahim Uddin · 01711223344", "House 12, Dhanmondi, Dhaka"],
     orderUrl: "https://shop.test/orders/ORD-2026-000123",
+    paid: false,
   };
 
   it("includes order number, items, totals, address and tracking link", () => {
     const { subject, html } = orderPlacedEmail(data);
-    expect(subject).toBe("Order ORD-2026-000123 confirmed — StoreCraft");
+    // A freshly placed order is pending, not confirmed — subject must not claim "confirmed".
+    expect(subject).toBe("Order ORD-2026-000123 received — StoreCraft");
+    expect(subject).not.toContain("confirmed");
     expect(html).toContain("Sony WH-1000XM5");
     expect(html).toContain("× 2");
     expect(html).toContain("৳75,760.00");
     expect(html).toContain("House 12, Dhanmondi, Dhaka");
     expect(html).toContain("https://shop.test/orders/ORD-2026-000123");
     expect(html).not.toContain("Discount");
+  });
+
+  it("shows a cash-on-delivery line when unpaid, and a paid line when paid", () => {
+    expect(orderPlacedEmail({ ...data, paid: false }).html).toContain(
+      "You pay in cash when the order arrives",
+    );
+    const paid = orderPlacedEmail({ ...data, paid: true }).html;
+    expect(paid).toContain("Your payment has been received");
+    expect(paid).not.toContain("pay in cash");
   });
 
   it("shows a discount row when a discount is present", () => {

@@ -15,6 +15,8 @@ export type OrderPlacedData = {
   total: string;
   addressLines: string[];
   orderUrl: string;
+  /** True for a paid online order — changes the payment line (vs cash-on-delivery). */
+  paid: boolean;
 };
 
 export type OrderStatusData = {
@@ -83,8 +85,12 @@ export function orderPlacedEmail(d: OrderPlacedData): { subject: string; html: s
     ${d.discount ? `<tr><td style="padding:4px 0;color:#666;font-size:13px;">Discount</td><td align="right" style="font-size:13px;color:#15803d;">− ${d.discount}</td></tr>` : ""}
     <tr><td style="padding:8px 0 0;font-weight:bold;font-size:15px;">Total</td><td align="right" style="padding:8px 0 0;font-weight:bold;font-size:15px;color:${ACCENT};">${d.total}</td></tr>`;
 
+  const paymentLine = d.paid
+    ? "Your payment has been received — thank you!"
+    : "You pay in cash when the order arrives.";
+
   const body = `
-    <p style="margin:0 0 16px;font-size:14px;">Hi ${escapeHtml(d.customerName)}, thank you for your order! We've received it and will contact you to confirm delivery. You pay in cash when the order arrives.</p>
+    <p style="margin:0 0 16px;font-size:14px;">Hi ${escapeHtml(d.customerName)}, thank you for your order! We've received it and will call you shortly to confirm. ${paymentLine}</p>
     <p style="margin:0 0 16px;font-size:14px;">Order number: <strong>${escapeHtml(d.orderNumber)}</strong></p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;padding:8px 0;">${rows}</table>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;">${totals}</table>
@@ -93,7 +99,7 @@ export function orderPlacedEmail(d: OrderPlacedData): { subject: string; html: s
     ${button(d.orderUrl, "Track your order")}`;
 
   return {
-    subject: `Order ${d.orderNumber} confirmed — StoreCraft`,
+    subject: `Order ${d.orderNumber} received — StoreCraft`,
     html: layout("Thanks — your order is placed!", body),
   };
 }
