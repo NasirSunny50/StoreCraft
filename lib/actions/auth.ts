@@ -8,6 +8,7 @@ import { hashPassword } from "@/lib/utils/password";
 import { registerSchema, loginSchema } from "@/lib/validators/auth";
 import { ADMIN_PORTAL_ROLES } from "@/lib/auth-guard";
 import { mergeGuestCartIntoUser } from "@/lib/cart";
+import { safeCallbackUrl } from "@/lib/utils/safe-redirect";
 
 export type AuthFormState = {
   error?: string;
@@ -51,7 +52,7 @@ export async function registerAction(
   // Auto-login the new customer, then fold any guest cart into their account.
   await signIn("credentials", { email, password, redirect: false });
   await mergeGuestCartIntoUser(created.id);
-  redirect("/");
+  redirect(safeCallbackUrl(formData.get("callbackUrl")) ?? "/");
 }
 
 export async function loginAction(
@@ -87,8 +88,10 @@ export async function loginAction(
   // Fold any guest cart into the now-authenticated account.
   if (user) await mergeGuestCartIntoUser(user.id);
 
+  // Prefer where the user was headed (e.g. /checkout); else role-based default.
   const dest =
-    user && ADMIN_PORTAL_ROLES.includes(user.role) ? "/admin" : "/";
+    safeCallbackUrl(formData.get("callbackUrl")) ??
+    (user && ADMIN_PORTAL_ROLES.includes(user.role) ? "/admin" : "/");
   redirect(dest);
 }
 

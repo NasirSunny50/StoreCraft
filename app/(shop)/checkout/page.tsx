@@ -16,7 +16,7 @@ import { AddressForm } from "@/components/checkout/address-form";
 export const metadata = { title: "Checkout — StoreCraft" };
 
 export default async function CheckoutPage() {
-  const session = await requireAuth();
+  const session = await requireAuth("/checkout");
   const cart = await getCart();
   const items = liveCartItems(cart);
 

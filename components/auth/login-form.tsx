@@ -5,7 +5,7 @@ import Link from "next/link";
 import { loginAction, type AuthFormState } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 
-export function LoginForm() {
+export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const [state, formAction, pending] = useActionState<AuthFormState, FormData>(
     loginAction,
     null,
@@ -13,6 +13,7 @@ export function LoginForm() {
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
+      {callbackUrl && <input type="hidden" name="callbackUrl" value={callbackUrl} />}
       {state?.error && (
         <p
           data-testid="form-error"
@@ -71,7 +72,10 @@ export function LoginForm() {
 
       <p className="text-center text-sm text-muted">
         No account?{" "}
-        <Link href="/register" className="font-medium text-link hover:text-accent">
+        <Link
+          href={callbackUrl ? `/register?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/register"}
+          className="font-medium text-link hover:text-accent"
+        >
           Register
         </Link>
       </p>

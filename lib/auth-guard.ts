@@ -6,10 +6,18 @@ import { ADMIN_PORTAL_ROLES, hasRole, canAccessAdmin } from "@/lib/utils/roles";
 // Re-export pure role helpers so callers can import everything from one place.
 export { ADMIN_PORTAL_ROLES, hasRole, canAccessAdmin };
 
-/** Require a logged-in user. Redirects to /login otherwise. Returns the session. */
-export async function requireAuth() {
+/**
+ * Require a logged-in user. Redirects to /login otherwise. Pass `callbackUrl`
+ * (the path the user was trying to reach) so login/register can send them back
+ * there instead of the homepage.
+ */
+export async function requireAuth(callbackUrl?: string) {
   const session = await auth();
-  if (!session?.user) redirect("/login");
+  if (!session?.user) {
+    redirect(
+      callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login",
+    );
+  }
   return session;
 }
 

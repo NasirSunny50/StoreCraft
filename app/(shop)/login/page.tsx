@@ -1,12 +1,18 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { LoginForm } from "@/components/auth/login-form";
+import { safeCallbackUrl } from "@/lib/utils/safe-redirect";
 
 export const metadata = { title: "Login — StoreCraft" };
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}) {
   const session = await auth();
-  if (session?.user) redirect("/");
+  const callbackUrl = safeCallbackUrl((await searchParams).callbackUrl) ?? undefined;
+  if (session?.user) redirect(callbackUrl ?? "/");
 
   return (
     <div className="mx-auto max-w-md py-8">
@@ -18,7 +24,7 @@ export default async function LoginPage() {
         <h1 className="mb-5 text-center text-2xl font-bold text-ink" data-testid="login-heading">
           Sign in
         </h1>
-        <LoginForm />
+        <LoginForm callbackUrl={callbackUrl} />
       </div>
     </div>
   );

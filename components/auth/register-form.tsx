@@ -39,7 +39,7 @@ function Field({
   );
 }
 
-export function RegisterForm() {
+export function RegisterForm({ callbackUrl }: { callbackUrl?: string }) {
   const [state, formAction, pending] = useActionState<AuthFormState, FormData>(
     registerAction,
     null,
@@ -48,6 +48,7 @@ export function RegisterForm() {
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
+      {callbackUrl && <input type="hidden" name="callbackUrl" value={callbackUrl} />}
       {state?.error && (
         <p
           data-testid="form-error"
@@ -75,7 +76,10 @@ export function RegisterForm() {
 
       <p className="text-center text-sm text-muted">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-link hover:text-accent">
+        <Link
+          href={callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login"}
+          className="font-medium text-link hover:text-accent"
+        >
           Login
         </Link>
       </p>
