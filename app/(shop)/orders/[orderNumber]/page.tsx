@@ -62,11 +62,11 @@ export default async function OrderDetailPage({
           data-testid="payment-notice"
           className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
         >
-          {payment === "cancelled"
-            ? "Payment was cancelled. Your order is saved as unpaid — use “Pay now” to complete payment, or cancel the order."
-            : payment === "failed"
-              ? "Payment failed. Your order is saved as unpaid — use “Pay now” to try again, or cancel the order."
-              : "We couldn't confirm your payment. If money was deducted, it will be refunded; please contact support."}
+          {payment === "error"
+            ? "We couldn't confirm your payment. If money was deducted, it will be refunded; please contact support."
+            : canRetryPayment
+              ? `Payment ${payment === "cancelled" ? "was cancelled" : "failed"}. Your order is saved as unpaid — use “Pay now” to complete payment, or cancel the order.`
+              : `Payment ${payment === "cancelled" ? "was cancelled" : "failed"}, so this order was not placed.`}
         </div>
       )}
 
