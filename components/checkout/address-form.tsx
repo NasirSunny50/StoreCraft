@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createAddressAction,
   type AddressFormState,
 } from "@/lib/actions/address";
 import { Button } from "@/components/ui/button";
+import { BD_CITIES, areasForCity } from "@/lib/data/bd-locations";
 
 function Field({
   name,
@@ -41,6 +42,53 @@ function Field({
   );
 }
 
+function SelectField({
+  name,
+  label,
+  required,
+  errors,
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled,
+}: {
+  name: string;
+  label: string;
+  required?: boolean;
+  errors?: string[];
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  placeholder: string;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="space-y-1">
+      <label htmlFor={name} className="block text-xs font-medium text-ink">
+        {label} {required && <span className="text-accent">*</span>}
+      </label>
+      <select
+        id={name}
+        name={name}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        data-testid={`addr-${name}`}
+        className="w-full rounded border border-hairline-strong bg-surface px-3 py-2 text-sm outline-none focus:border-accent disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <option value="">{placeholder}</option>
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+      {errors?.[0] && <p className="text-xs text-accent">{errors[0]}</p>}
+    </div>
+  );
+}
+
 export function AddressForm({
   compact = false,
   defaultFullName,
@@ -55,10 +103,14 @@ export function AddressForm({
     null,
   );
   const formRef = useRef<HTMLFormElement>(null);
+  const [city, setCity] = useState("");
+  const [area, setArea] = useState("");
 
   useEffect(() => {
     if (state?.ok) {
       formRef.current?.reset();
+      setCity("");
+      setArea("");
       router.refresh();
     }
   }, [state, router]);
@@ -79,8 +131,29 @@ export function AddressForm({
       <Field name="line1" label="Address line 1" required errors={fe?.line1} />
       <Field name="line2" label="Address line 2" errors={fe?.line2} />
       <div className={compact ? "grid gap-3" : "grid gap-3 sm:grid-cols-3"}>
-        <Field name="city" label="City" required errors={fe?.city} />
-        <Field name="area" label="Area" errors={fe?.area} />
+        <SelectField
+          name="city"
+          label="City"
+          required
+          errors={fe?.city}
+          value={city}
+          onChange={(v) => {
+            setCity(v);
+            setArea(""); // area depends on city — reset it
+          }}
+          options={BD_CITIES}
+          placeholder="Select city"
+        />
+        <SelectField
+          name="area"
+          label="Area"
+          errors={fe?.area}
+          value={area}
+          onChange={setArea}
+          options={areasForCity(city)}
+          placeholder={city ? "Select area" : "Select a city first"}
+          disabled={!city}
+        />
         <Field name="postcode" label="Postcode" errors={fe?.postcode} />
       </div>
       <label className="flex items-center gap-2 text-sm">
