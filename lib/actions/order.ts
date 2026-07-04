@@ -9,7 +9,11 @@ import {
   failOrderPaymentByNumber,
   CheckoutError,
 } from "@/lib/orders";
-import { startSslcommerzPayment } from "@/lib/payment";
+import {
+  startSslcommerzPayment,
+  retryOnlinePaymentForUser,
+  RetryPaymentError,
+} from "@/lib/payment";
 import { sslcommerzConfigured } from "@/lib/sslcommerz";
 import { notifyOrderPlaced, notifyOrderStatus } from "@/lib/notify-order";
 import { placeOrderSchema } from "@/lib/validators/checkout";
@@ -78,6 +82,27 @@ export async function placeOrderAction(
   revalidatePath("/orders");
   revalidatePath("/", "layout"); // cart badge
   redirect(`/orders/${order.orderNumber}?placed=1`);
+}
+
+/**
+ * Re-open the payment gateway for an existing unpaid online order (retry after a
+ * failed/cancelled attempt). Returns the gateway URL for the client to redirect
+ * to — the browser navigates there, so we don't revalidate/redirect here.
+ */
+export async function retryOnlinePaymentAction(
+  orderId: string,
+): Promise<{ ok: boolean; redirectUrl?: string; error?: string }> {
+  const session = await requireAuth();
+  if (!sslcommerzConfigured()) {
+    return { ok: false, error: "Online payment is unavailable right now." };
+  }
+  try {
+    const { gatewayUrl } = await retryOnlinePaymentForUser(session.user.id, orderId);
+    return { ok: true, redirectUrl: gatewayUrl };
+  } catch (e) {
+    if (e instanceof RetryPaymentError) return { ok: false, error: e.message };
+    return { ok: false, error: "Could not start online payment. Please try again." };
+  }
 }
 
 export async function cancelOrderAction(

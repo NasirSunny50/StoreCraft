@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
-import { verifySslcommerzSignature, sslcommerzStorePassword } from "@/lib/sslcommerz";
-import { failOrderPaymentByNumber } from "@/lib/orders";
+import {
+  verifySslcommerzSignature,
+  sslcommerzStorePassword,
+  sslcommerzTransactionStatus,
+} from "@/lib/sslcommerz";
+import { failOrderPaymentByNumber, markOrderPaid } from "@/lib/orders";
+import { notifyOrderPlaced } from "@/lib/notify-order";
 import { siteUrl } from "@/lib/site-url";
 
 /**
- * Customer cancelled on the gateway. Verify the signature, then release the
- * reserved stock and cancel the order so it doesn't linger as pending.
+ * Customer cancelled on the gateway. As with the fail callback, never trust the
+ * POST: re-check server-side whether the order was in fact paid (and mark it
+ * paid if so); otherwise verify the signature, then release the reserved stock
+ * and cancel the order so it doesn't linger as pending.
  */
 export async function POST(req: Request) {
   const base = siteUrl();
@@ -16,9 +23,16 @@ export async function POST(req: Request) {
     for (const [k, v] of form.entries()) fields[k] = String(v);
     tranId = fields.tran_id ?? "";
 
-    const storePasswd = sslcommerzStorePassword();
-    if (tranId && verifySslcommerzSignature(fields, storePasswd)) {
-      await failOrderPaymentByNumber(tranId);
+    if (tranId) {
+      const tx = await sslcommerzTransactionStatus(tranId);
+      if (tx.paid) {
+        const res = await markOrderPaid(tranId, tx.amount);
+        if (res.ok && res.newlyPaid) await notifyOrderPlaced(res.orderId);
+        return NextResponse.redirect(`${base}/orders/${tranId}?placed=1`, 303);
+      }
+      if (verifySslcommerzSignature(fields, sslcommerzStorePassword())) {
+        await failOrderPaymentByNumber(tranId);
+      }
     }
   } catch (e) {
     console.error("[sslcommerz cancel]", e);

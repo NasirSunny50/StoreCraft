@@ -8,6 +8,7 @@ import { formatBDT } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
 import { OrderStatusBadge } from "@/components/order/order-status-badge";
 import { CancelOrderButton } from "@/components/order/cancel-order-button";
+import { RetryPaymentButton } from "@/components/order/retry-payment-button";
 
 export async function generateMetadata({
   params,
@@ -34,6 +35,12 @@ export default async function OrderDetailPage({
   const cancelled = order.status === "CANCELLED";
   const currentStep = ORDER_STATUS_FLOW.indexOf(order.status);
   const addr = order.address;
+  // Unpaid online order (e.g. after a failed/cancelled attempt) — let the
+  // customer re-open the gateway instead of rebuilding their (now-cleared) cart.
+  const canRetryPayment =
+    order.paymentMethod === "SSLCOMMERZ" &&
+    order.paymentStatus === "UNPAID" &&
+    order.status !== "CANCELLED";
 
   return (
     <div className="space-y-4">
@@ -56,9 +63,9 @@ export default async function OrderDetailPage({
           className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
         >
           {payment === "cancelled"
-            ? "Payment was cancelled, so this order was not placed. You can try again from the cart."
+            ? "Payment was cancelled. Your order is saved as unpaid — use “Pay now” to complete payment, or cancel the order."
             : payment === "failed"
-              ? "Payment failed, so this order was not placed. Please try again or choose Cash on Delivery."
+              ? "Payment failed. Your order is saved as unpaid — use “Pay now” to try again, or cancel the order."
               : "We couldn't confirm your payment. If money was deducted, it will be refunded; please contact support."}
         </div>
       )}
@@ -76,7 +83,12 @@ export default async function OrderDetailPage({
           </h1>
           <OrderStatusBadge status={order.status} />
         </div>
-        {canCancelOrder(order.status) && <CancelOrderButton orderId={order.id} />}
+        {(canRetryPayment || canCancelOrder(order.status)) && (
+          <div className="flex items-start gap-2">
+            {canRetryPayment && <RetryPaymentButton orderId={order.id} />}
+            {canCancelOrder(order.status) && <CancelOrderButton orderId={order.id} />}
+          </div>
+        )}
       </div>
 
       {/* Status timeline */}

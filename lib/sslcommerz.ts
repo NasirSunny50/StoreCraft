@@ -133,6 +133,53 @@ export async function validateSslcommerzPayment(valId: string): Promise<Validati
   };
 }
 
+export type TransactionStatus = {
+  /** SSLCommerz has at least one transaction record for this order number. */
+  found: boolean;
+  /** A successful (VALID/VALIDATED) payment exists for this order number. */
+  paid: boolean;
+  amount: string | null;
+};
+
+/**
+ * Authoritative lookup of an order's payment state by our tran_id (order
+ * number), via the merchant transaction query API. Used by the fail/cancel
+ * callbacks to avoid cancelling an order that was in fact paid (never trust the
+ * browser's fail/cancel POST — re-check server-side, same as success).
+ */
+export async function sslcommerzTransactionStatus(tranId: string): Promise<TransactionStatus> {
+  const storeId = sslcommerzStoreId();
+  const storePasswd = sslcommerzStorePassword();
+  if (!storeId || !storePasswd || !tranId) return { found: false, paid: false, amount: null };
+
+  const host = process.env.SSLCOMMERZ_LIVE === "true" ? "securepay" : "sandbox";
+  const url = new URL(
+    `https://${host}.sslcommerz.com/validator/api/merchantTransIDvalidationAPI.php`,
+  );
+  url.searchParams.set("tran_id", tranId);
+  url.searchParams.set("store_id", storeId);
+  url.searchParams.set("store_passwd", storePasswd);
+  url.searchParams.set("format", "json");
+
+  try {
+    const res = await fetch(url, { method: "GET" });
+    if (!res.ok) return { found: false, paid: false, amount: null };
+    const data = (await res.json()) as {
+      no_of_trans_found?: number;
+      element?: Array<{ status?: string; amount?: string | number }>;
+    };
+    const elements = data.element ?? [];
+    const validEl = elements.find((e) => e.status === "VALID" || e.status === "VALIDATED");
+    return {
+      found: (data.no_of_trans_found ?? elements.length) > 0,
+      paid: Boolean(validEl),
+      amount: validEl?.amount != null ? String(validEl.amount) : null,
+    };
+  } catch {
+    return { found: false, paid: false, amount: null };
+  }
+}
+
 /**
  * Verify the IPN/callback hash so a forged POST can't drive an order state
  * change. Algorithm per SSLCommerz docs: collect the fields named in
