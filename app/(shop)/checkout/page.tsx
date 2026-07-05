@@ -4,7 +4,8 @@ import { requireAuth } from "@/lib/auth-guard";
 import { getCart, liveCartItems, cartSubtotal } from "@/lib/cart";
 import { getUserAddresses } from "@/lib/queries/address";
 import { sslcommerzConfigured } from "@/lib/sslcommerz";
-import { computeOrderTotals, SHIPPING_FEE } from "@/lib/order-math";
+import { computeOrderTotals } from "@/lib/order-math";
+import { getShippingFee } from "@/lib/settings";
 import { formatBDT, multiply } from "@/lib/utils/money";
 import {
   CheckoutForm,
@@ -46,7 +47,7 @@ export default async function CheckoutPage() {
   }));
 
   const subtotal = cartSubtotal(cart);
-  const totals = computeOrderTotals({ subtotal, shippingFee: SHIPPING_FEE });
+  const totals = computeOrderTotals({ subtotal, shippingFee: await getShippingFee() });
   const summary: SummaryView = {
     items: items.map((i) => ({
       id: i.id,

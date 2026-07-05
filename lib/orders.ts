@@ -5,8 +5,8 @@ import {
   computeOrderTotals,
   formatOrderNumber,
   canCancelOrder,
-  SHIPPING_FEE,
 } from "@/lib/order-math";
+import { getShippingFee } from "@/lib/settings";
 import { validateCoupon } from "@/lib/coupon-math";
 
 /** User-facing checkout failure (empty cart, no stock, bad address, …). */
@@ -110,7 +110,7 @@ async function placeOnce(
 
   const { shippingFee, discount, total } = computeOrderTotals({
     subtotal,
-    shippingFee: SHIPPING_FEE,
+    shippingFee: await getShippingFee(),
     discount: couponDiscount,
   });
   const year = new Date().getFullYear();

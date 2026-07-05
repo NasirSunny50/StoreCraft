@@ -3,7 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { getCart, cartSubtotal } from "@/lib/cart";
 import { validateCoupon } from "@/lib/coupon-math";
-import { computeOrderTotals, SHIPPING_FEE } from "@/lib/order-math";
+import { computeOrderTotals } from "@/lib/order-math";
+import { getShippingFee } from "@/lib/settings";
 import { formatBDT } from "@/lib/utils/money";
 
 export type CouponPreview =
@@ -27,7 +28,7 @@ export async function previewCoupon(code: string): Promise<CouponPreview> {
 
   const totals = computeOrderTotals({
     subtotal,
-    shippingFee: SHIPPING_FEE,
+    shippingFee: await getShippingFee(),
     discount: check.discount,
   });
   return {

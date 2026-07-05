@@ -302,3 +302,10 @@ model StockLog {
 
   @@index([productId])
 }
+
+/// Key-value store for admin-configurable store settings (e.g. delivery charge).
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
