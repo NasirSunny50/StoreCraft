@@ -21,21 +21,30 @@ export type AddressView = {
 export type SummaryView = {
   items: { id: string; name: string; quantity: number; lineTotal: string }[];
   itemCount: number;
-  subtotal: string;
-  shipping: string;
-  total: string;
+  subtotalValue: number;
 };
 
+export type DeliveryFees = { insideDhaka: number; outsideDhaka: number };
+
 const FORM_ID = "checkout-form-el";
+const DHAKA_CITY = "Dhaka";
+
+/** Client-side display formatter (server-side order math stays Decimal-safe). */
+function taka(n: number): string {
+  const [whole, dec] = Math.max(0, n).toFixed(2).split(".");
+  return `৳${whole!.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${dec}`;
+}
 
 export function CheckoutForm({
   addresses,
   summary,
+  deliveryFees,
   onlineEnabled = false,
   defaultFullName,
 }: {
   addresses: AddressView[];
   summary: SummaryView;
+  deliveryFees: DeliveryFees;
   onlineEnabled?: boolean;
   defaultFullName?: string;
 }) {
@@ -56,7 +65,7 @@ export function CheckoutForm({
   }, [state]);
 
   const [couponInput, setCouponInput] = useState("");
-  const [applied, setApplied] = useState<{ code: string; discount: string; total: string } | null>(null);
+  const [applied, setApplied] = useState<{ code: string; discount: string; discountValue: number } | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponPending, startCoupon] = useTransition();
 
@@ -65,7 +74,7 @@ export function CheckoutForm({
     startCoupon(async () => {
       const res = await previewCoupon(couponInput);
       if (res.ok) {
-        setApplied({ code: res.code, discount: res.discount, total: res.total });
+        setApplied({ code: res.code, discount: res.discount, discountValue: Number(res.discountValue) });
         setCouponInput(res.code);
       } else {
         setApplied(null);
@@ -76,6 +85,14 @@ export function CheckoutForm({
 
   const defaultId =
     addresses.find((a) => a.isDefault)?.id ?? addresses[0]?.id ?? "";
+
+  // Delivery charge follows the selected address's city (Inside vs Outside Dhaka).
+  const [selectedId, setSelectedId] = useState(defaultId);
+  const selectedCity = addresses.find((a) => a.id === selectedId)?.city ?? "";
+  const insideDhaka = selectedCity.trim() === DHAKA_CITY;
+  const shippingFee = insideDhaka ? deliveryFees.insideDhaka : deliveryFees.outsideDhaka;
+  const discountValue = applied?.discountValue ?? 0;
+  const totalValue = Math.max(0, summary.subtotalValue + shippingFee - discountValue);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_360px] lg:gap-6">
@@ -94,7 +111,8 @@ export function CheckoutForm({
                     type="radio"
                     name="addressId"
                     value={a.id}
-                    defaultChecked={a.id === defaultId}
+                    checked={a.id === selectedId}
+                    onChange={() => setSelectedId(a.id)}
                     data-testid="checkout-address"
                     className="mt-1 accent-accent"
                   />
@@ -230,7 +248,7 @@ export function CheckoutForm({
           </div>
           {applied && (
             <p data-testid="coupon-applied" className="mt-2 text-sm text-green-700">
-              Coupon <strong>{applied.code}</strong> applied — discount {applied.discount}. New total {applied.total}.
+              Coupon <strong>{applied.code}</strong> applied — discount {applied.discount}. New total {taka(totalValue)}.
             </p>
           )}
           {couponError && (
@@ -242,11 +260,13 @@ export function CheckoutForm({
         <div className="space-y-2.5 border-t border-hairline px-4 py-4 text-sm">
           <div className="flex justify-between">
             <span className="text-muted">Sub Total ({summary.itemCount} {summary.itemCount === 1 ? "item" : "items"})</span>
-            <span data-testid="summary-subtotal" className="font-medium">{summary.subtotal}</span>
+            <span data-testid="summary-subtotal" className="font-medium">{taka(summary.subtotalValue)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted">Delivery</span>
-            <span data-testid="summary-shipping" className="font-medium">{summary.shipping}</span>
+            <span className="text-muted">
+              Delivery <span className="text-xs">({insideDhaka ? "Inside Dhaka" : "Outside Dhaka"})</span>
+            </span>
+            <span data-testid="summary-shipping" className="font-medium">{taka(shippingFee)}</span>
           </div>
           {applied && (
             <div className="flex justify-between">
@@ -257,7 +277,7 @@ export function CheckoutForm({
           <div className="flex justify-between border-t border-hairline pt-3 text-base font-bold">
             <span className="text-ink">Total Amount</span>
             <span data-testid="summary-total" className="text-accent">
-              {applied ? applied.total : summary.total}
+              {taka(totalValue)}
             </span>
           </div>
         </div>

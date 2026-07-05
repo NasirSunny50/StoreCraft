@@ -6,7 +6,7 @@ import {
   formatOrderNumber,
   canCancelOrder,
 } from "@/lib/order-math";
-import { getShippingFee } from "@/lib/settings";
+import { getDeliveryFees, shippingFeeForCity } from "@/lib/settings";
 import { validateCoupon } from "@/lib/coupon-math";
 
 /** User-facing checkout failure (empty cart, no stock, bad address, …). */
@@ -108,9 +108,11 @@ async function placeOnce(
     couponDiscount = check.discount;
   }
 
+  // Delivery charge depends on the destination city (Inside vs Outside Dhaka).
+  const shippingValue = shippingFeeForCity(address.city, await getDeliveryFees());
   const { shippingFee, discount, total } = computeOrderTotals({
     subtotal,
-    shippingFee: await getShippingFee(),
+    shippingFee: shippingValue,
     discount: couponDiscount,
   });
   const year = new Date().getFullYear();

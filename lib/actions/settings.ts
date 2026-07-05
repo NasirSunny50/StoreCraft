@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth-guard";
-import { setShippingFee } from "@/lib/settings";
-import { shippingFeeSchema } from "@/lib/validators/settings";
+import { setDeliveryFees } from "@/lib/settings";
+import { deliveryFeesSchema } from "@/lib/validators/settings";
 
 export type SettingsFormState = {
   ok?: boolean;
@@ -11,21 +11,22 @@ export type SettingsFormState = {
   fieldErrors?: Record<string, string[]>;
 } | null;
 
-/** ADMIN: update the delivery charge used at checkout / order placement. */
-export async function updateShippingFeeAction(
+/** ADMIN: update the Inside/Outside Dhaka delivery charges. */
+export async function updateDeliveryFeesAction(
   _prev: SettingsFormState,
   formData: FormData,
 ): Promise<SettingsFormState> {
   await requireAdmin();
 
-  const parsed = shippingFeeSchema.safeParse({
-    shippingFee: formData.get("shippingFee"),
+  const parsed = deliveryFeesSchema.safeParse({
+    insideDhaka: formData.get("insideDhaka"),
+    outsideDhaka: formData.get("outsideDhaka"),
   });
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  await setShippingFee(parsed.data.shippingFee);
+  await setDeliveryFees(parsed.data);
 
   // New orders (and the live checkout total) pick up the change immediately.
   revalidatePath("/admin/settings");

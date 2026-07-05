@@ -4,8 +4,7 @@ import { requireAuth } from "@/lib/auth-guard";
 import { getCart, liveCartItems, cartSubtotal } from "@/lib/cart";
 import { getUserAddresses } from "@/lib/queries/address";
 import { sslcommerzConfigured } from "@/lib/sslcommerz";
-import { computeOrderTotals } from "@/lib/order-math";
-import { getShippingFee } from "@/lib/settings";
+import { getDeliveryFees } from "@/lib/settings";
 import { formatBDT, multiply } from "@/lib/utils/money";
 import {
   CheckoutForm,
@@ -47,7 +46,7 @@ export default async function CheckoutPage() {
   }));
 
   const subtotal = cartSubtotal(cart);
-  const totals = computeOrderTotals({ subtotal, shippingFee: await getShippingFee() });
+  const fees = await getDeliveryFees();
   const summary: SummaryView = {
     items: items.map((i) => ({
       id: i.id,
@@ -56,9 +55,11 @@ export default async function CheckoutPage() {
       lineTotal: formatBDT(multiply(i.product.price, i.quantity)),
     })),
     itemCount: items.length,
-    subtotal: formatBDT(totals.subtotal),
-    shipping: formatBDT(totals.shippingFee),
-    total: formatBDT(totals.total),
+    subtotalValue: subtotal.toNumber(),
+  };
+  const deliveryFees = {
+    insideDhaka: Number(fees.insideDhaka),
+    outsideDhaka: Number(fees.outsideDhaka),
   };
 
   return (
@@ -94,6 +95,7 @@ export default async function CheckoutPage() {
         <CheckoutForm
           addresses={addressViews}
           summary={summary}
+          deliveryFees={deliveryFees}
           onlineEnabled={sslcommerzConfigured()}
           defaultFullName={session.user.name ?? undefined}
         />
