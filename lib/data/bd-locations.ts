@@ -205,10 +205,14 @@ export const BD_LOCATIONS: BdCity[] = [
   },
 ];
 
-/** Flat list of city names for the City dropdown. */
-export const BD_CITIES: string[] = BD_LOCATIONS.map((l) => l.city);
+/** Flat list of city names for the City dropdown, sorted alphabetically. */
+export const BD_CITIES: string[] = BD_LOCATIONS.map((l) => l.city).sort((a, b) =>
+  a.localeCompare(b),
+);
 
-/** Areas for a given city (empty if the city isn't in the dataset). */
+/** Areas for a given city, sorted alphabetically (empty if the city isn't in the dataset). */
 export function areasForCity(city: string): string[] {
-  return BD_LOCATIONS.find((l) => l.city === city)?.areas ?? [];
+  return (BD_LOCATIONS.find((l) => l.city === city)?.areas ?? [])
+    .slice()
+    .sort((a, b) => a.localeCompare(b));
 }
