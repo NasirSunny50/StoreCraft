@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ShoppingCart } from "lucide-react";
+import { Check, SquarePlus, ShoppingBag } from "lucide-react";
 import { addToCartAction } from "@/lib/actions/cart";
 import { Button } from "@/components/ui/button";
 import { WishlistButton } from "@/components/wishlist/wishlist-button";
@@ -117,8 +117,9 @@ export function ProductBuyBox({
               loading={pending}
               data-testid="buy-now"
               onClick={() => add(() => router.push("/cart"))}
-              className="rounded-full"
+              className="rounded-full px-4 lg:px-6"
             >
+              {!pending && <ShoppingBag className="h-4 w-4 shrink-0" />}
               {pending ? "Adding…" : "Buy Now"}
             </Button>
             <Button
@@ -128,10 +129,10 @@ export function ProductBuyBox({
               loading={pending}
               data-testid="add-to-cart"
               onClick={() => add()}
-              className="rounded-full"
+              className="rounded-full px-4 lg:px-6"
             >
               {!pending &&
-                (msg?.type === "ok" ? <Check className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />)}
+                (msg?.type === "ok" ? <Check className="h-4 w-4 shrink-0" /> : <SquarePlus className="h-4 w-4 shrink-0" />)}
               {pending ? "Adding…" : "Add to cart"}
             </Button>
           </div>
