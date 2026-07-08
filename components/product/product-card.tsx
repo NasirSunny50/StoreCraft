@@ -27,7 +27,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
               src={product.imageUrl}
               alt={product.imageAlt}
               loading="lazy"
-              className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+              className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
             <span className="meta-label">No image</span>
@@ -43,13 +43,13 @@ export function ProductCard({ product }: { product: ProductCardData }) {
       <div className="flex flex-1 flex-col gap-2 border-t border-hairline p-3">
         <Link
           href={href}
-          className="line-clamp-2 min-h-[2.5rem] text-[13px] font-medium leading-snug text-ink hover:text-accent"
+          className="line-clamp-2 min-h-[2.75rem] text-[15px] font-semibold leading-snug text-ink hover:text-accent"
         >
           {product.name}
         </Link>
 
         {product.specBullets.length > 0 && (
-          <ul className="space-y-0.5 text-[11px] leading-snug text-muted">
+          <ul className="space-y-0.5 text-[13px] leading-snug text-muted">
             {product.specBullets.slice(0, 3).map((s, i) => (
               <li key={i} className="flex gap-1.5">
                 <span className="text-hairline-strong">▪</span>
