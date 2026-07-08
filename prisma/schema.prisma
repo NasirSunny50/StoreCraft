@@ -224,6 +224,10 @@ model Order {
   paymentMethod PaymentMethod    @default(COD)
   paymentStatus PaymentStatus    @default(UNPAID)
   note          String?
+  // Courier tracking — set by admin/staff when the order ships.
+  trackingCarrier String?
+  trackingNumber  String?
+  trackingUrl     String?
   statusLogs    OrderStatusLog[]
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt

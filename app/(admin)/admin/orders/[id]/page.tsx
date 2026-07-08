@@ -68,7 +68,15 @@ export default async function AdminOrderDetailPage({
         <aside className="space-y-4">
           <div className="rounded border border-hairline bg-surface p-4 text-sm">
             <h2 className="mb-2 text-sm font-bold">Update Status</h2>
-            <OrderStatusForm orderId={order.id} current={order.status} />
+            <OrderStatusForm
+              orderId={order.id}
+              current={order.status}
+              tracking={{
+                carrier: order.trackingCarrier,
+                number: order.trackingNumber,
+                url: order.trackingUrl,
+              }}
+            />
           </div>
           <div className="rounded border border-hairline bg-surface p-4 text-sm">
             <h2 className="mb-2 text-sm font-bold">Customer</h2>

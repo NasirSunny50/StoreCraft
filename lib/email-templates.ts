@@ -25,6 +25,9 @@ export type OrderStatusData = {
   status: OrderStatus;
   note?: string | null;
   orderUrl: string;
+  trackingCarrier?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
 };
 
 function escapeHtml(s: string): string {
@@ -134,12 +137,33 @@ const STATUS_COPY: Record<OrderStatus, { subject: string; title: string; message
 
 export function orderStatusEmail(d: OrderStatusData): { subject: string; html: string } {
   const copy = STATUS_COPY[d.status];
+
+  // Courier tracking block — only on a shipped order that has tracking details.
+  const hasTracking = d.status === "SHIPPED" && (d.trackingCarrier || d.trackingNumber || d.trackingUrl);
+  const trackingBlock = hasTracking
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:6px;">
+        <tr><td style="padding:12px 14px;">
+          <p style="margin:0 0 6px;font-weight:bold;font-size:13px;">Courier tracking</p>
+          ${d.trackingCarrier ? `<p style="margin:0 0 2px;font-size:13px;color:#666;">Courier: <strong style="color:#333;">${escapeHtml(d.trackingCarrier)}</strong></p>` : ""}
+          ${d.trackingNumber ? `<p style="margin:0 0 2px;font-size:13px;color:#666;">Tracking no: <strong style="color:#333;">${escapeHtml(d.trackingNumber)}</strong></p>` : ""}
+        </td></tr>
+      </table>`
+    : "";
+
+  // When shipped with a link, the primary button tracks the parcel directly.
+  const primary =
+    hasTracking && d.trackingUrl
+      ? `${button(d.trackingUrl, "Track your parcel")}
+         <p style="margin:12px 0 0;font-size:12px;"><a href="${d.orderUrl}" style="color:#888;">View order details</a></p>`
+      : button(d.orderUrl, "View order");
+
   const body = `
     <p style="margin:0 0 16px;font-size:14px;">Hi ${escapeHtml(d.customerName)},</p>
     <p style="margin:0 0 16px;font-size:14px;">${copy.message}</p>
     <p style="margin:0 0 16px;font-size:14px;">Order number: <strong>${escapeHtml(d.orderNumber)}</strong></p>
+    ${trackingBlock}
     ${d.note ? `<p style="margin:0 0 16px;font-size:13px;color:#666;">Note: ${escapeHtml(d.note)}</p>` : ""}
-    ${button(d.orderUrl, "View order")}`;
+    ${primary}`;
 
   return {
     subject: `Order ${d.orderNumber} ${copy.subject} — StoreCraft`,

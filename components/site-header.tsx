@@ -29,7 +29,7 @@ export async function SiteHeader() {
             <span className="hidden items-center gap-1 text-white/70 sm:flex">
               <Phone className="h-3.5 w-3.5" /> Hotline 16793
             </span>
-            <Link href="/products" className="hidden text-white/80 hover:text-white sm:inline">
+            <Link href="/track" className="hidden text-white/80 hover:text-white sm:inline">
               Track Order
             </Link>
             {user ? (

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, ArrowLeft, Phone } from "lucide-react";
+import { CheckCircle2, ArrowLeft, Phone, Truck, ExternalLink } from "lucide-react";
 import { requireAuth } from "@/lib/auth-guard";
 import { getOrderByNumberForUser } from "@/lib/queries/order";
 import { canCancelOrder, ORDER_STATUS_FLOW, paymentMethodLabel } from "@/lib/order-math";
@@ -203,6 +203,37 @@ export default async function OrderDetailPage({
               </p>
             )}
           </div>
+
+          {(order.trackingCarrier || order.trackingNumber || order.trackingUrl) && (
+            <div
+              data-testid="order-tracking"
+              className="rounded-lg border border-hairline bg-surface p-4 text-sm"
+            >
+              <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold">
+                <Truck className="h-4 w-4 text-accent" /> Courier Tracking
+              </h2>
+              {order.trackingCarrier && (
+                <div className="text-muted">
+                  Courier: <span className="font-medium text-ink">{order.trackingCarrier}</span>
+                </div>
+              )}
+              {order.trackingNumber && (
+                <div className="text-muted">
+                  Tracking no: <span className="font-medium text-ink">{order.trackingNumber}</span>
+                </div>
+              )}
+              {order.trackingUrl && (
+                <a
+                  href={order.trackingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                >
+                  Track your parcel <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              )}
+            </div>
+          )}
         </aside>
       </div>
     </div>

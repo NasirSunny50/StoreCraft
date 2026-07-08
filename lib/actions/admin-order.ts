@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireStaff } from "@/lib/auth-guard";
 import { notifyOrderStatus } from "@/lib/notify-order";
+import { orderTrackingSchema, type OrderTrackingInput } from "@/lib/validators/order-tracking";
 
 const VALID: OrderStatus[] = [
   "PENDING",
@@ -19,9 +20,17 @@ export async function updateOrderStatus(
   orderId: string,
   status: OrderStatus,
   note?: string,
+  tracking?: OrderTrackingInput,
 ): Promise<{ ok: boolean; error?: string }> {
   const session = await requireStaff();
   if (!VALID.includes(status)) return { ok: false, error: "Invalid status." };
+
+  // Validate courier tracking (only meaningful when shipping).
+  const parsed = orderTrackingSchema.safeParse(tracking ?? {});
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid tracking details." };
+  }
+  const t = parsed.data;
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -55,7 +64,18 @@ export async function updateOrderStatus(
         });
       }
 
-      await tx.order.update({ where: { id: orderId }, data: { status } });
+      // Persist courier tracking. Set it when shipping; clear it if the order
+      // moves back out of SHIPPED so stale links can't linger on the order.
+      const trackingData =
+        status === "SHIPPED"
+          ? {
+              trackingCarrier: t.carrier || null,
+              trackingNumber: t.number || null,
+              trackingUrl: t.url || null,
+            }
+          : { trackingCarrier: null, trackingNumber: null, trackingUrl: null };
+
+      await tx.order.update({ where: { id: orderId }, data: { status, ...trackingData } });
       await tx.orderStatusLog.create({
         data: {
           orderId,

@@ -68,6 +68,9 @@ export async function notifyOrderStatus(
       status,
       note,
       orderUrl: `${siteUrl()}/orders/${order.orderNumber}`,
+      trackingCarrier: order.trackingCarrier,
+      trackingNumber: order.trackingNumber,
+      trackingUrl: order.trackingUrl,
     });
     await sendEmail({ to: order.user.email, subject, html });
   } catch (e) {

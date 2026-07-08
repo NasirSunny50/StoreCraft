@@ -44,3 +44,31 @@ export async function getOrderByNumberForUser(
     include: orderInclude,
   });
 }
+
+/** Digits-only, for lenient phone comparison (ignores spaces, +88, dashes). */
+function digitsOnly(s: string): string {
+  return s.replace(/\D/g, "");
+}
+
+/**
+ * Public order lookup for the Track Order page: match by order number AND the
+ * delivery phone, so no login is needed but a bare order number alone can't
+ * reveal someone else's order. Phone compared on trailing digits (handles
+ * +880 / leading-zero variants).
+ */
+export async function getOrderForTracking(
+  orderNumber: string,
+  phone: string,
+): Promise<OrderWithDetails | null> {
+  const order = await prisma.order.findUnique({
+    where: { orderNumber: orderNumber.trim() },
+    include: orderInclude,
+  });
+  if (!order) return null;
+
+  const input = digitsOnly(phone);
+  const stored = digitsOnly(order.address.phone);
+  if (input.length < 6 || stored.length < 6) return null;
+  const match = stored.endsWith(input) || input.endsWith(stored);
+  return match ? order : null;
+}

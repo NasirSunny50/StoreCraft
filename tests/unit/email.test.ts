@@ -209,4 +209,29 @@ describe("orderStatusEmail", () => {
     const { html } = orderStatusEmail({ ...base, status: "SHIPPED", note: "Leave <at> gate" });
     expect(html).toContain("Leave &lt;at&gt; gate");
   });
+
+  it("shows courier tracking + a Track parcel button on a shipped order", () => {
+    const { html } = orderStatusEmail({
+      ...base,
+      status: "SHIPPED",
+      trackingCarrier: "Pathao Courier",
+      trackingNumber: "PX-99887766",
+      trackingUrl: "https://merchant.pathao.com/track/PX-99887766",
+    });
+    expect(html).toContain("Pathao Courier");
+    expect(html).toContain("PX-99887766");
+    expect(html).toContain("https://merchant.pathao.com/track/PX-99887766");
+    expect(html).toContain("Track your parcel");
+  });
+
+  it("does not show tracking for a non-shipped status even if fields are set", () => {
+    const { html } = orderStatusEmail({
+      ...base,
+      status: "CONFIRMED",
+      trackingCarrier: "Pathao Courier",
+      trackingUrl: "https://merchant.pathao.com/track/X",
+    });
+    expect(html).not.toContain("Track your parcel");
+    expect(html).not.toContain("Courier tracking");
+  });
 });
