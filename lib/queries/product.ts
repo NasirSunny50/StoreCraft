@@ -84,10 +84,10 @@ export type ProductDetail = NonNullable<
 export async function getRelatedProducts(
   categoryId: string,
   excludeProductId: string,
-  take = 8,
+  take = 12,
 ): Promise<ProductListItem[]> {
-  // Same-category products first (the true "more of this type" suggestions).
-  const sameCategory = await prisma.product.findMany({
+  // Strictly same-category suggestions — "more of this exact type", nothing else.
+  return prisma.product.findMany({
     where: {
       isActive: true,
       isDeleted: false,
@@ -98,23 +98,6 @@ export async function getRelatedProducts(
     take,
     include: listInclude,
   });
-  if (sameCategory.length >= take) return sameCategory;
-
-  // Thin category — top up with other popular products so the suggestions
-  // block is always worth showing.
-  const excludeIds = [excludeProductId, ...sameCategory.map((p) => p.id)];
-  const fillers = await prisma.product.findMany({
-    where: {
-      isActive: true,
-      isDeleted: false,
-      categoryId: { not: categoryId },
-      id: { notIn: excludeIds },
-    },
-    orderBy: [{ ratingCount: "desc" }, { createdAt: "desc" }],
-    take: take - sameCategory.length,
-    include: listInclude,
-  });
-  return [...sameCategory, ...fillers];
 }
 
 export async function getCategories() {

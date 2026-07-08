@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { ShoppingBag } from "lucide-react";
 import { addToCartAction } from "@/lib/actions/cart";
 import { Button } from "@/components/ui/button";
 
@@ -38,6 +39,7 @@ export function BuyNowButton({
       data-testid="buy-now"
       className={className}
     >
+      {!pending && <ShoppingBag className="h-4 w-4 shrink-0" />}
       {pending ? "…" : "Buy Now"}
     </Button>
   );
