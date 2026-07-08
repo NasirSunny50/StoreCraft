@@ -35,7 +35,7 @@ const ITEMS: Item[] = [
   { href: "/admin/customers", label: "Customers", icon: Users, adminOnly: true },
   { href: "/admin/coupons", label: "Coupons", icon: Ticket, adminOnly: true },
   { href: "/admin/reports", label: "Reports", icon: BarChart3, adminOnly: true },
-  { href: "/admin/settings", label: "Settings", icon: Settings, adminOnly: true },
+  { href: "/admin/settings", label: "Delivery Charges", icon: Settings, adminOnly: true },
 ];
 
 export function AdminNav({ role }: { role: Role }) {

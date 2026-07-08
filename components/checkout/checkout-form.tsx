@@ -169,7 +169,9 @@ export function CheckoutForm({
                   />
                   <span className="font-medium text-ink">
                     Online Payment{" "}
-                    <span className="font-normal text-muted">— card · bKash · Nagad (SSLCommerz)</span>
+                    <span className="font-normal text-muted">
+                      — bKash · Nagad · Rocket · Upay · Visa · Mastercard · American Express · Internet Banking (SSLCommerz)
+                    </span>
                   </span>
                 </label>
               )}
@@ -177,7 +179,7 @@ export function CheckoutForm({
             <p className="mt-2 text-xs text-muted">
               {method === "COD"
                 ? "Pay in cash when your order arrives."
-                : "You'll be redirected to SSLCommerz to complete payment securely, then back to your order."}
+                : "You'll be redirected to SSLCommerz to pay securely with mobile banking (bKash, Nagad, Rocket, Upay), any Visa/Mastercard/Amex card, or internet banking — then back to your order."}
             </p>
           </section>
 
