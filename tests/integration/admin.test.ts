@@ -13,7 +13,7 @@ import { adjustStock } from "@/lib/actions/admin-inventory";
 import { updateOrderStatus } from "@/lib/actions/admin-order";
 import { createCoupon } from "@/lib/actions/admin-coupon";
 import { setUserBlocked } from "@/lib/actions/admin-customer";
-import { createOrderForUser, CheckoutError } from "@/lib/orders";
+import { createOrderForUser, markOrderPaid, CheckoutError } from "@/lib/orders";
 import { getProducts } from "@/lib/queries/product";
 
 const TAG = `adm_${Date.now()}`;
@@ -165,6 +165,30 @@ describe("order status management", () => {
     expect(afterCancel).toBe(afterPlace + 1);
     const cancelled = await prisma.order.findUnique({ where: { id: order.id } });
     expect(cancelled?.status).toBe("CANCELLED");
+  });
+
+  it("auto-confirms a PENDING order when online payment is marked paid", async () => {
+    await prisma.cartItem.deleteMany({ where: { cartId } });
+    await prisma.cartItem.create({ data: { cartId, productId: cprodId, quantity: 1 } });
+    const order = await createOrderForUser(customerId, { addressId });
+    const placed = await prisma.order.findUnique({ where: { id: order.id } });
+    expect(placed?.status).toBe("PENDING");
+    const total = placed!.total.toString();
+
+    const res = await markOrderPaid(order.orderNumber, total);
+    expect(res.ok && res.newlyPaid && res.confirmed).toBe(true);
+
+    const db = await prisma.order.findUnique({
+      where: { id: order.id },
+      include: { statusLogs: true },
+    });
+    expect(db?.status).toBe("CONFIRMED");
+    expect(db?.paymentStatus).toBe("PAID");
+    expect(db?.statusLogs.some((l) => l.status === "CONFIRMED" && l.note?.includes("auto-confirmed"))).toBe(true);
+
+    // Idempotent: a duplicate callback neither re-confirms nor errors.
+    const again = await markOrderPaid(order.orderNumber, total);
+    expect(again.ok && again.newlyPaid === false && again.confirmed === false).toBe(true);
   });
 
   it("cannot re-activate a cancelled order (no double stock, terminal)", async () => {

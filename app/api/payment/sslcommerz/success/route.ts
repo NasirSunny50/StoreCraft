@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { validateSslcommerzPayment } from "@/lib/sslcommerz";
 import { markOrderPaid } from "@/lib/orders";
-import { notifyOrderPlaced } from "@/lib/notify-order";
+import { notifyOrderPlaced, notifyOrderStatus } from "@/lib/notify-order";
 import { siteUrl } from "@/lib/site-url";
 
 /**
@@ -27,6 +27,7 @@ export async function POST(req: Request) {
     const res = await markOrderPaid(tranId, v.amount);
     if (res.ok && res.newlyPaid) {
       await notifyOrderPlaced(res.orderId); // never throws
+      if (res.confirmed) await notifyOrderStatus(res.orderId, "CONFIRMED");
     }
     if (!res.ok) {
       return NextResponse.redirect(`${base}/orders/${tranId}?payment=error`, 303);

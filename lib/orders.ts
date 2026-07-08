@@ -194,7 +194,7 @@ async function placeOnce(
 }
 
 export type MarkPaidResult =
-  | { ok: true; orderId: string; newlyPaid: boolean }
+  | { ok: true; orderId: string; newlyPaid: boolean; confirmed: boolean }
   | { ok: false; reason: "not-found" | "cancelled" | "amount-mismatch" };
 
 /**
@@ -211,7 +211,7 @@ export async function markOrderPaid(
     const order = await tx.order.findUnique({ where: { orderNumber } });
     if (!order) return { ok: false, reason: "not-found" };
     if (order.paymentStatus === "PAID") {
-      return { ok: true, orderId: order.id, newlyPaid: false };
+      return { ok: true, orderId: order.id, newlyPaid: false, confirmed: false };
     }
     if (order.status === "CANCELLED") return { ok: false, reason: "cancelled" };
 
@@ -219,22 +219,26 @@ export async function markOrderPaid(
       return { ok: false, reason: "amount-mismatch" };
     }
 
-    // Payment does NOT auto-confirm the order — staff confirm it by phone. The
-    // order's status is left unchanged (a paid order stays PENDING until it's
-    // manually confirmed from the admin portal).
+    // Payment is proof enough — a paid online order auto-confirms (no phone
+    // confirmation needed). Only advance a PENDING order; if staff already moved
+    // it further, leave that status alone.
+    const confirmed = order.status === "PENDING";
+    const nextStatus = confirmed ? "CONFIRMED" : order.status;
     await tx.order.update({
       where: { id: order.id },
-      data: { paymentStatus: "PAID" },
+      data: { paymentStatus: "PAID", status: nextStatus },
     });
     await tx.orderStatusLog.create({
       data: {
         orderId: order.id,
-        status: order.status,
-        note: "Payment received (SSLCommerz)",
+        status: nextStatus,
+        note: confirmed
+          ? "Payment received (SSLCommerz) — auto-confirmed"
+          : "Payment received (SSLCommerz)",
         changedBy: order.userId,
       },
     });
-    return { ok: true, orderId: order.id, newlyPaid: true };
+    return { ok: true, orderId: order.id, newlyPaid: true, confirmed };
   });
 }
 

@@ -5,7 +5,7 @@ import {
   sslcommerzTransactionStatus,
 } from "@/lib/sslcommerz";
 import { failOrderPaymentByNumber, markOrderPaid } from "@/lib/orders";
-import { notifyOrderPlaced } from "@/lib/notify-order";
+import { notifyOrderPlaced, notifyOrderStatus } from "@/lib/notify-order";
 import { siteUrl } from "@/lib/site-url";
 
 /**
@@ -27,7 +27,10 @@ export async function POST(req: Request) {
       const tx = await sslcommerzTransactionStatus(tranId);
       if (tx.paid) {
         const res = await markOrderPaid(tranId, tx.amount);
-        if (res.ok && res.newlyPaid) await notifyOrderPlaced(res.orderId);
+        if (res.ok && res.newlyPaid) {
+          await notifyOrderPlaced(res.orderId);
+          if (res.confirmed) await notifyOrderStatus(res.orderId, "CONFIRMED");
+        }
         return NextResponse.redirect(`${base}/orders/${tranId}?placed=1`, 303);
       }
       if (verifySslcommerzSignature(fields, sslcommerzStorePassword())) {
