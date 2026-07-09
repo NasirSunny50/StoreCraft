@@ -20,25 +20,24 @@ export function BrandLogo({
   className?: string;
   imgClassName?: string;
 }) {
-  if (logoUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={logoUrl}
-        alt={shopName}
-        className={cn("h-8 w-auto max-w-[180px] object-contain", imgClassName)}
-      />
-    );
-  }
-
   const [first, ...rest] = shopName.trim().split(/\s+/);
   const tail = rest.join(" ");
   const restColor = variant === "dark" ? "text-white" : "text-ink";
 
   return (
-    <span className={cn("flex items-baseline gap-1 font-extrabold tracking-tight", className)}>
-      <span className="text-accent">{first}</span>
-      {tail && <span className={restColor}>{tail}</span>}
+    <span className="flex items-center gap-2">
+      {logoUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={logoUrl}
+          alt={shopName}
+          className={cn("h-8 w-auto max-w-[120px] object-contain", imgClassName)}
+        />
+      )}
+      <span className={cn("flex items-baseline gap-1 font-extrabold tracking-tight", className)}>
+        <span className="text-accent">{first}</span>
+        {tail && <span className={restColor}>{tail}</span>}
+      </span>
     </span>
   );
 }
