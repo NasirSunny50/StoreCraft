@@ -70,7 +70,7 @@ export default async function ReportsPage({
         </div>
 
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-surface-2 text-left text-xs text-muted">
               <tr>
                 <th className="px-3 py-2 font-medium">Order</th>
@@ -100,8 +100,8 @@ export default async function ReportsPage({
 
       <section>
         <h2 className="mb-2 text-sm font-bold text-ink">Low-stock products ({lowStock.length})</h2>
-        <div className="overflow-hidden rounded border border-hairline">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded border border-hairline">
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-surface-2 text-left text-xs text-muted">
               <tr>
                 <th className="px-3 py-2 font-medium">Product</th>

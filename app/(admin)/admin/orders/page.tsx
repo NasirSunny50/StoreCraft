@@ -54,8 +54,8 @@ export default async function AdminOrdersPage({
         ))}
       </div>
 
-      <div className="overflow-hidden rounded border border-hairline">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded border border-hairline">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-surface-2 text-left text-xs text-muted">
             <tr>
               <th className="px-3 py-2 font-medium">Order</th>

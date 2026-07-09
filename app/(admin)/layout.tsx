@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireRole, ADMIN_PORTAL_ROLES } from "@/lib/auth-guard";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { AdminNav } from "@/components/admin/admin-nav";
+import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
 
 // Role guard for the ENTIRE admin portal (ADMIN or STAFF). ADMIN-only sections
 // guard again at the page level.
@@ -12,8 +13,9 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-screen flex-col bg-paper">
-      <header className="flex h-14 items-center justify-between bg-navbar px-4 text-white">
-        <div className="flex items-center gap-4">
+      <header className="flex h-14 items-center justify-between gap-2 bg-navbar px-3 text-white sm:px-4">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+          <AdminMobileNav role={session.user.role} />
           <Link href="/admin" className="flex items-baseline gap-1">
             <span className="text-lg font-extrabold text-accent">Store</span>
             <span className="text-lg font-extrabold text-white">Craft</span>
@@ -21,12 +23,12 @@ export default async function AdminLayout({
               Admin
             </span>
           </Link>
-          <Link href="/" className="text-xs text-white/60 hover:text-white">
+          <Link href="/" className="hidden text-xs text-white/60 hover:text-white sm:inline">
             ← Back to storefront
           </Link>
         </div>
-        <div className="flex items-center gap-3 text-sm">
-          <span data-testid="admin-user-role" className="text-white/70">
+        <div className="flex min-w-0 items-center gap-2 text-sm sm:gap-3">
+          <span data-testid="admin-user-role" className="hidden truncate text-white/70 sm:inline">
             {session.user.name} · {session.user.role}
           </span>
           <LogoutButton />

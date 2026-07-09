@@ -29,8 +29,8 @@ export default async function AdminCustomersPage({
         <button className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white">Search</button>
       </form>
 
-      <div className="overflow-hidden rounded border border-hairline">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded border border-hairline">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-surface-2 text-left text-xs text-muted">
             <tr>
               <th className="px-3 py-2 font-medium">Name</th>

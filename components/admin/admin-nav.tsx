@@ -38,7 +38,14 @@ const ITEMS: Item[] = [
   { href: "/admin/settings", label: "Delivery Charges", icon: Truck, adminOnly: true },
 ];
 
-export function AdminNav({ role }: { role: Role }) {
+export function AdminNav({
+  role,
+  onNavigate,
+}: {
+  role: Role;
+  /** Called when a link is tapped — used to close the mobile drawer. */
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
   const items = ITEMS.filter((i) => !i.adminOnly || role === "ADMIN");
 
@@ -53,6 +60,7 @@ export function AdminNav({ role }: { role: Role }) {
           <Link
             key={item.href}
             href={item.href}
+            onClick={onNavigate}
             data-testid={`adminnav-${item.label.toLowerCase()}`}
             className={cn(
               "flex items-center gap-3 rounded px-3 py-2 text-sm",
