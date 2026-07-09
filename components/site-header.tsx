@@ -5,15 +5,18 @@ import { hasRole } from "@/lib/utils/roles";
 import { getCart, cartCount } from "@/lib/cart";
 import { getWishlist, wishlistCount } from "@/lib/wishlist";
 import { getCategories } from "@/lib/queries/product";
+import { getBranding } from "@/lib/branding";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { MobileMenu } from "@/components/mobile-menu";
+import { BrandLogo } from "@/components/brand-logo";
 
 export async function SiteHeader() {
-  const [session, cart, wishlist, categories] = await Promise.all([
+  const [session, cart, wishlist, categories, branding] = await Promise.all([
     auth(),
     getCart(),
     getWishlist(),
     getCategories(),
+    getBranding(),
   ]);
   const user = session?.user;
   const cartQty = cartCount(cart);
@@ -26,9 +29,11 @@ export async function SiteHeader() {
         <div className="mx-auto flex h-9 max-w-7xl items-center justify-between px-4 text-xs">
           <span className="hidden truncate text-white/70 sm:inline">Tech for everyone — fast delivery across Bangladesh</span>
           <div className="ml-auto flex items-center gap-4">
-            <span className="hidden items-center gap-1 text-white/70 sm:flex">
-              <Phone className="h-3.5 w-3.5" /> Hotline 16793
-            </span>
+            {branding.hotline && (
+              <span className="hidden items-center gap-1 text-white/70 sm:flex">
+                <Phone className="h-3.5 w-3.5" /> Hotline {branding.hotline}
+              </span>
+            )}
             <Link href="/track" className="hidden text-white/80 hover:text-white sm:inline">
               Track Order
             </Link>
@@ -75,10 +80,16 @@ export async function SiteHeader() {
             categories={categories}
             isAuthed={!!user}
             isStaff={!!user && hasRole(user.role, "ADMIN", "STAFF")}
+            shopName={branding.shopName}
+            logoUrl={branding.logoUrl}
           />
-          <Link href="/" className="flex shrink-0 items-baseline gap-1">
-            <span className="text-xl font-extrabold tracking-tight text-accent sm:text-2xl">Store</span>
-            <span className="text-xl font-extrabold tracking-tight text-ink sm:text-2xl">Craft</span>
+          <Link href="/" className="flex shrink-0 items-center">
+            <BrandLogo
+              shopName={branding.shopName}
+              logoUrl={branding.logoUrl}
+              variant="light"
+              className="text-xl sm:text-2xl"
+            />
           </Link>
 
           <form action="/products" className="hidden h-10 flex-1 items-stretch overflow-hidden rounded border border-hairline-strong lg:flex">

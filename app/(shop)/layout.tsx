@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { getBranding } from "@/lib/branding";
 import { SiteHeader } from "@/components/site-header";
+import { BrandLogo } from "@/components/brand-logo";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 
 export default async function ShopLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const session = await auth();
+  const [session, branding] = await Promise.all([auth(), getBranding()]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -20,15 +22,20 @@ export default async function ShopLayout({
       <footer className="mt-10 bg-navbar text-white/70">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-12 md:grid-cols-4">
           <div>
-            <div className="mb-3 flex items-baseline gap-0.5">
-              <span className="text-xl font-extrabold text-accent">Store</span>
-              <span className="text-xl font-extrabold text-white">Craft</span>
+            <div className="mb-3">
+              <BrandLogo shopName={branding.shopName} logoUrl={branding.logoUrl} variant="dark" className="text-xl" imgClassName="h-8" />
             </div>
-            <p className="text-xs leading-relaxed">
-              Your trusted electronics shop. Genuine products, fast delivery,
-              cash on delivery available.
-            </p>
-            <p className="mt-3 text-xs">Hotline: 16793</p>
+            {branding.tagline && <p className="text-xs leading-relaxed">{branding.tagline}</p>}
+            {branding.hotline && <p className="mt-3 text-xs">Hotline: {branding.hotline}</p>}
+            {branding.contactEmail && <p className="mt-1 text-xs">{branding.contactEmail}</p>}
+            {branding.address && <p className="mt-1 text-xs leading-relaxed">{branding.address}</p>}
+            {(branding.facebook || branding.instagram || branding.whatsapp) && (
+              <div className="mt-3 flex gap-3 text-xs">
+                {branding.facebook && <a href={branding.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-white">Facebook</a>}
+                {branding.instagram && <a href={branding.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-white">Instagram</a>}
+                {branding.whatsapp && <a href={branding.whatsapp} target="_blank" rel="noopener noreferrer" className="hover:text-white">WhatsApp</a>}
+              </div>
+            )}
           </div>
           <div>
             <h4 className="mb-3 text-sm font-semibold text-white">Shop</h4>
@@ -59,7 +66,7 @@ export default async function ShopLayout({
         </div>
         <div className="border-t border-white/10">
           <div className="mx-auto max-w-7xl px-4 py-4 text-xs text-white/50">
-            © {new Date().getFullYear()} StoreCraft. All rights reserved.
+            © {new Date().getFullYear()} {branding.shopName}. All rights reserved.
           </div>
         </div>
       </footer>

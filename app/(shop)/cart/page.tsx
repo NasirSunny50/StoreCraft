@@ -4,7 +4,7 @@ import { getCart, liveCartItems, cartSubtotal } from "@/lib/cart";
 import { formatBDT, multiply } from "@/lib/utils/money";
 import { CartItemRow, type CartItemView } from "@/components/cart/cart-item-row";
 
-export const metadata = { title: "Cart — StoreCraft" };
+export const metadata = { title: "Cart" };
 
 export default async function CartPage() {
   const cart = await getCart();

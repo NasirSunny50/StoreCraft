@@ -20,7 +20,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   return {
-    title: product ? `${product.name} — StoreCraft` : "Product — StoreCraft",
+    title: product ? product.name : "Product",
   };
 }
 

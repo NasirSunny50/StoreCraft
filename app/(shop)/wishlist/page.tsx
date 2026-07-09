@@ -7,7 +7,7 @@ import {
   type WishlistItemView,
 } from "@/components/wishlist/wishlist-item-row";
 
-export const metadata = { title: "Wishlist — StoreCraft" };
+export const metadata = { title: "Wishlist" };
 
 export default async function WishlistPage() {
   await requireAuth(); // wishlist is per-user

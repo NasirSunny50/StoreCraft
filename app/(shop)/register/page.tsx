@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { RegisterForm } from "@/components/auth/register-form";
 import { safeCallbackUrl } from "@/lib/utils/safe-redirect";
 
-export const metadata = { title: "Register — StoreCraft" };
+export const metadata = { title: "Register" };
 
 export default async function RegisterPage({
   searchParams,

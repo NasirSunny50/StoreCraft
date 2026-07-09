@@ -5,7 +5,7 @@ import { ORDER_STATUS_FLOW } from "@/lib/order-math";
 import { OrderStatusBadge } from "@/components/order/order-status-badge";
 import { cn } from "@/lib/utils/cn";
 
-export const metadata = { title: "Track Order — StoreCraft" };
+export const metadata = { title: "Track Order" };
 
 export default async function TrackOrderPage({
   searchParams,

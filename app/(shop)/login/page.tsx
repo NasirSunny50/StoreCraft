@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { LoginForm } from "@/components/auth/login-form";
 import { safeCallbackUrl } from "@/lib/utils/safe-redirect";
 
-export const metadata = { title: "Login — StoreCraft" };
+export const metadata = { title: "Login" };
 
 export default async function LoginPage({
   searchParams,

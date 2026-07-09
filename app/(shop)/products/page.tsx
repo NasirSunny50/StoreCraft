@@ -1,7 +1,7 @@
 import { ProductListing } from "@/components/product/product-listing";
 import { parseProductFilter } from "@/lib/validators/product";
 
-export const metadata = { title: "Products — StoreCraft" };
+export const metadata = { title: "Products" };
 
 export default async function ProductsPage({
   searchParams,

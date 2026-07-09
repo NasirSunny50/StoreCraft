@@ -16,7 +16,7 @@ export async function generateMetadata({
   params: Promise<{ orderNumber: string }>;
 }) {
   const { orderNumber } = await params;
-  return { title: `${orderNumber} — StoreCraft` };
+  return { title: orderNumber };
 }
 
 export default async function OrderDetailPage({

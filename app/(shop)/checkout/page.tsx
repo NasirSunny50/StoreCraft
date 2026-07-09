@@ -13,7 +13,7 @@ import {
 } from "@/components/checkout/checkout-form";
 import { AddressForm } from "@/components/checkout/address-form";
 
-export const metadata = { title: "Checkout — StoreCraft" };
+export const metadata = { title: "Checkout" };
 
 export default async function CheckoutPage() {
   const session = await requireAuth("/checkout");

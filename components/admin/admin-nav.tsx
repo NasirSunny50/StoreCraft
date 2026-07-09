@@ -14,6 +14,7 @@ import {
   Ticket,
   BarChart3,
   Truck,
+  Palette,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -36,6 +37,7 @@ const ITEMS: Item[] = [
   { href: "/admin/coupons", label: "Coupons", icon: Ticket, adminOnly: true },
   { href: "/admin/reports", label: "Reports", icon: BarChart3, adminOnly: true },
   { href: "/admin/settings", label: "Delivery Charges", icon: Truck, adminOnly: true },
+  { href: "/admin/branding", label: "Store Branding", icon: Palette, adminOnly: true },
 ];
 
 export function AdminNav({

@@ -6,7 +6,7 @@ import { paymentMethodLabel } from "@/lib/order-math";
 import { formatBDT } from "@/lib/utils/money";
 import { OrderStatusBadge } from "@/components/order/order-status-badge";
 
-export const metadata = { title: "My Orders — StoreCraft" };
+export const metadata = { title: "My Orders" };
 
 export default async function OrdersPage({
   searchParams,

@@ -17,6 +17,7 @@ export type OrderPlacedData = {
   orderUrl: string;
   /** True for a paid online order — changes the payment line (vs cash-on-delivery). */
   paid: boolean;
+  brand?: EmailBrand;
 };
 
 export type OrderStatusData = {
@@ -28,6 +29,7 @@ export type OrderStatusData = {
   trackingCarrier?: string | null;
   trackingNumber?: string | null;
   trackingUrl?: string | null;
+  brand?: EmailBrand;
 };
 
 function escapeHtml(s: string): string {
@@ -38,7 +40,15 @@ function escapeHtml(s: string): string {
     .replaceAll('"', "&quot;");
 }
 
-function layout(title: string, body: string): string {
+export type EmailBrand = { shopName: string; hotline?: string };
+
+const DEFAULT_BRAND: EmailBrand = { shopName: "StoreCraft", hotline: "16793" };
+
+function layout(title: string, body: string, brand: EmailBrand = DEFAULT_BRAND): string {
+  const name = escapeHtml(brand.shopName);
+  const footer = [name, "Cash on Delivery", brand.hotline ? `Hotline ${escapeHtml(brand.hotline)}` : ""]
+    .filter(Boolean)
+    .join(" · ");
   return `<!DOCTYPE html>
 <html>
 <body style="margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;color:#333;">
@@ -47,7 +57,7 @@ function layout(title: string, body: string): string {
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
         <tr>
           <td style="background:${NAVY};padding:16px 24px;">
-            <span style="font-size:20px;font-weight:800;color:${ACCENT};">Store</span><span style="font-size:20px;font-weight:800;color:#ffffff;">Craft</span>
+            <span style="font-size:20px;font-weight:800;color:${ACCENT};">${name}</span>
           </td>
         </tr>
         <tr>
@@ -58,7 +68,7 @@ function layout(title: string, body: string): string {
         </tr>
         <tr>
           <td style="padding:14px 24px;border-top:1px solid #e5e7eb;font-size:12px;color:#888;">
-            StoreCraft — Your trusted electronics shop · Cash on Delivery · Hotline 16793
+            ${footer}
           </td>
         </tr>
       </table>
@@ -101,9 +111,10 @@ export function orderPlacedEmail(d: OrderPlacedData): { subject: string; html: s
     <p style="margin:0 0 20px;font-size:13px;color:#666;">${d.addressLines.map(escapeHtml).join("<br/>")}</p>
     ${button(d.orderUrl, "Track your order")}`;
 
+  const brand = d.brand ?? DEFAULT_BRAND;
   return {
-    subject: `Order ${d.orderNumber} received — StoreCraft`,
-    html: layout("Thanks — your order is placed!", body),
+    subject: `Order ${d.orderNumber} received — ${brand.shopName}`,
+    html: layout("Thanks — your order is placed!", body, brand),
   };
 }
 
@@ -165,8 +176,9 @@ export function orderStatusEmail(d: OrderStatusData): { subject: string; html: s
     ${d.note ? `<p style="margin:0 0 16px;font-size:13px;color:#666;">Note: ${escapeHtml(d.note)}</p>` : ""}
     ${primary}`;
 
+  const brand = d.brand ?? DEFAULT_BRAND;
   return {
-    subject: `Order ${d.orderNumber} ${copy.subject} — StoreCraft`,
-    html: layout(copy.title, body),
+    subject: `Order ${d.orderNumber} ${copy.subject} — ${brand.shopName}`,
+    html: layout(copy.title, body, brand),
   };
 }

@@ -4,7 +4,7 @@ import { AddressList } from "@/components/account/address-list";
 import { AddressForm } from "@/components/checkout/address-form";
 import type { AddressView } from "@/components/checkout/checkout-form";
 
-export const metadata = { title: "My Addresses — StoreCraft" };
+export const metadata = { title: "My Addresses" };
 
 export default async function AddressesPage() {
   const session = await requireAuth();

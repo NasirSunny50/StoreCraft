@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { orderPlacedEmail, orderStatusEmail } from "@/lib/email-templates";
 import { siteUrl } from "@/lib/site-url";
+import { getBranding } from "@/lib/branding";
 import { formatBDT, multiply } from "@/lib/utils/money";
 
 /**
@@ -22,7 +23,9 @@ export async function notifyOrderPlaced(orderId: string): Promise<void> {
     });
     if (!order) return;
 
+    const branding = await getBranding();
     const { subject, html } = orderPlacedEmail({
+      brand: { shopName: branding.shopName, hotline: branding.hotline },
       orderNumber: order.orderNumber,
       customerName: order.user.name,
       items: order.items.map((i) => ({
@@ -62,7 +65,9 @@ export async function notifyOrderStatus(
     });
     if (!order) return;
 
+    const branding = await getBranding();
     const { subject, html } = orderStatusEmail({
+      brand: { shopName: branding.shopName, hotline: branding.hotline },
       orderNumber: order.orderNumber,
       customerName: order.user.name,
       status,

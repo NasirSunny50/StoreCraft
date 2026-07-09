@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
+import { getBranding, brandTitle } from "@/lib/branding";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "StoreCraft — Electronics, engineered.",
-  description: "A premium showcase for electronics. Curated and ready to ship.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const b = await getBranding();
+  const icon = b.faviconUrl || b.logoUrl;
+  return {
+    title: { default: brandTitle(b), template: `%s · ${b.shopName}` },
+    description: b.metaDescription,
+    ...(icon ? { icons: { icon } } : {}),
+  };
+}
 
 export default function RootLayout({
   children,

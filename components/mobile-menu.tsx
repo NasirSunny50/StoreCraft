@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X, ChevronRight } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 
 type Cat = { id: string; name: string; slug: string };
 
@@ -14,10 +15,14 @@ export function MobileMenu({
   categories,
   isAuthed,
   isStaff,
+  shopName,
+  logoUrl,
 }: {
   categories: Cat[];
   isAuthed: boolean;
   isStaff: boolean;
+  shopName: string;
+  logoUrl?: string;
 }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
@@ -39,10 +44,7 @@ export function MobileMenu({
           <div className="absolute inset-0 bg-black/50" onClick={close} />
           <div className="absolute left-0 top-0 flex h-full w-72 max-w-[82%] flex-col overflow-y-auto bg-surface shadow-xl">
             <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
-              <span className="flex items-baseline gap-1">
-                <span className="text-lg font-extrabold text-accent">Store</span>
-                <span className="text-lg font-extrabold text-ink">Craft</span>
-              </span>
+              <BrandLogo shopName={shopName} logoUrl={logoUrl} variant="light" className="text-lg" imgClassName="h-7" />
               <button type="button" aria-label="Close menu" onClick={close} className="grid h-8 w-8 place-items-center rounded text-muted hover:text-ink">
                 <X className="h-5 w-5" />
               </button>
