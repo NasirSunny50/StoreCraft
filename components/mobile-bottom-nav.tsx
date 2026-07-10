@@ -17,7 +17,7 @@ export function MobileBottomNav({ isAuthed }: { isAuthed: boolean }) {
 
   const items = [
     { href: "/", label: "Home", icon: Home, match: (p: string) => p === "/" },
-    { href: "/products", label: "Categories", icon: LayoutGrid, match: (p: string) => p.startsWith("/products") || p.startsWith("/category") },
+    { href: "/categories", label: "Categories", icon: LayoutGrid, match: (p: string) => p.startsWith("/categories") || p.startsWith("/category") || p.startsWith("/products") },
     { href: "/products?sort=price-asc", label: "Offers", icon: Tag, match: () => false },
     { href: isAuthed ? "/orders" : "/login", label: "Account", icon: User, match: (p: string) => p.startsWith("/orders") || p.startsWith("/account") || p.startsWith("/login") },
   ];

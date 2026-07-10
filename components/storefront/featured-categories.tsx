@@ -1,44 +1,5 @@
 import Link from "next/link";
-import {
-  Smartphone,
-  Laptop,
-  Headphones,
-  Cable,
-  Watch,
-  Tablet,
-  Speaker,
-  Camera,
-  Gamepad2,
-  Package,
-  type LucideIcon,
-} from "lucide-react";
-
-/** Map a category slug (or name keyword) to a representative icon. */
-const ICONS: Record<string, LucideIcon> = {
-  smartphones: Smartphone,
-  phones: Smartphone,
-  mobile: Smartphone,
-  laptops: Laptop,
-  computer: Laptop,
-  computers: Laptop,
-  audio: Headphones,
-  headphones: Headphones,
-  accessories: Cable,
-  wearables: Watch,
-  watches: Watch,
-  tablets: Tablet,
-  speakers: Speaker,
-  cameras: Camera,
-  gaming: Gamepad2,
-};
-
-function iconFor(slug: string, name: string): LucideIcon {
-  const key = slug.toLowerCase();
-  const direct = ICONS[key];
-  if (direct) return direct;
-  const hit = Object.keys(ICONS).find((k) => key.includes(k) || name.toLowerCase().includes(k));
-  return (hit && ICONS[hit]) || Package;
-}
+import { categoryIcon } from "@/lib/view/category-icon";
 
 export function FeaturedCategories({
   categories,
@@ -55,7 +16,7 @@ export function FeaturedCategories({
       {/* Horizontal scroll on mobile, wrapped grid on larger screens. */}
       <div className="flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-4 sm:overflow-visible lg:grid-cols-8">
         {categories.map((c) => {
-          const Icon = iconFor(c.slug, c.name);
+          const Icon = categoryIcon(c.slug, c.name);
           return (
             <Link
               key={c.id}
