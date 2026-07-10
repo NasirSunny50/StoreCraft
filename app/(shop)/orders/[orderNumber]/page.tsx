@@ -73,7 +73,8 @@ export default async function OrderDetailPage({
         </div>
       )}
 
-      {(payment === "failed" || payment === "cancelled" || payment === "error") && (
+      {order.paymentStatus !== "PAID" &&
+        (payment === "failed" || payment === "cancelled" || payment === "error") && (
         <div
           data-testid="payment-notice"
           className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"

@@ -23,18 +23,22 @@ export function ProductBuyBox({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  // Which button triggered the in-flight action, so only that one spins.
+  const [active, setActive] = useState<"cart" | "buy" | null>(null);
   const [qty, setQty] = useState(1);
   const [color, setColor] = useState(colors[0] ?? "");
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const soldOut = stock <= 0;
 
-  function add(then?: () => void) {
+  function add(which: "cart" | "buy", then?: () => void) {
     setMsg(null);
+    setActive(which);
     startTransition(async () => {
       const res = await addToCartAction(productId, qty, color);
       setMsg(res.ok ? { type: "ok", text: "Added to cart" } : { type: "err", text: res.error });
       router.refresh();
       if (res.ok) then?.();
+      setActive(null);
     });
   }
 
@@ -114,26 +118,28 @@ export function ProductBuyBox({
               type="button"
               variant="accent"
               size="lg"
-              loading={pending}
+              loading={active === "buy"}
+              disabled={pending}
               data-testid="buy-now"
-              onClick={() => add(() => router.push("/cart"))}
+              onClick={() => add("buy", () => router.push("/cart"))}
               className="rounded-full px-4 lg:px-6"
             >
-              {!pending && <ShoppingBag className="h-4 w-4 shrink-0" />}
-              {pending ? "Adding…" : "Buy Now"}
+              {active !== "buy" && <ShoppingBag className="h-4 w-4 shrink-0" />}
+              {active === "buy" ? "Adding…" : "Buy Now"}
             </Button>
             <Button
               type="button"
               variant="outline"
               size="lg"
-              loading={pending}
+              loading={active === "cart"}
+              disabled={pending}
               data-testid="add-to-cart"
-              onClick={() => add()}
+              onClick={() => add("cart")}
               className="rounded-full px-4 lg:px-6"
             >
-              {!pending &&
+              {active !== "cart" &&
                 (msg?.type === "ok" ? <Check className="h-4 w-4 shrink-0" /> : <SquarePlus className="h-4 w-4 shrink-0" />)}
-              {pending ? "Adding…" : "Add to cart"}
+              {active === "cart" ? "Adding…" : "Add to cart"}
             </Button>
           </div>
         </div>
