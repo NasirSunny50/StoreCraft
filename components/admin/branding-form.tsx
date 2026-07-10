@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Upload } from "lucide-react";
 import { updateBranding } from "@/lib/actions/admin-branding";
 import type { Branding } from "@/lib/branding";
 import { Button } from "@/components/ui/button";
@@ -79,37 +80,46 @@ export function BrandingForm({ initial }: { initial: Branding }) {
   }) {
     return (
       <Field label={label} hint={hint}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 rounded-lg border border-hairline bg-surface-2 p-3">
           {b[field] ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={b[field]}
               alt={label}
-              className="h-12 w-12 rounded border border-hairline bg-surface-2 object-contain p-1"
+              className="h-14 w-14 shrink-0 rounded-md border border-hairline bg-surface object-contain p-1"
             />
           ) : (
-            <div className="grid h-12 w-12 place-items-center rounded border border-dashed border-hairline-strong text-[10px] text-muted">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-md border border-dashed border-hairline-strong text-[10px] text-muted">
               none
             </div>
           )}
-          <div className="flex flex-col gap-1">
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/svg+xml"
-              onChange={(e) => upload(field, e.target.files?.[0])}
-              className="text-xs"
-            />
-            {b[field] && (
-              <button
-                type="button"
-                onClick={() => set(field, "")}
-                className="self-start text-[11px] text-accent hover:underline"
-              >
-                Remove
-              </button>
-            )}
+          <div className="flex min-w-0 flex-col gap-1.5 border-l border-hairline pl-3">
+            <label className="inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-md border border-hairline-strong bg-surface px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:border-accent hover:text-accent">
+              <Upload className="h-3.5 w-3.5" />
+              {b[field] ? "Replace image" : "Choose image"}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                onChange={(e) => upload(field, e.target.files?.[0])}
+                className="hidden"
+              />
+            </label>
+            <span className="text-[11px]">
+              {uploading === field ? (
+                <span className="text-muted">Uploading…</span>
+              ) : b[field] ? (
+                <button
+                  type="button"
+                  onClick={() => set(field, "")}
+                  className="text-accent hover:underline"
+                >
+                  Remove
+                </button>
+              ) : (
+                <span className="text-muted">No file chosen · PNG, JPG or SVG</span>
+              )}
+            </span>
           </div>
-          {uploading === field && <span className="text-xs text-muted">Uploading…</span>}
         </div>
       </Field>
     );
