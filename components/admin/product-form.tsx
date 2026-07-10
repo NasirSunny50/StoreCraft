@@ -6,6 +6,7 @@ import { Plus, X } from "lucide-react";
 import { createProduct, updateProduct } from "@/lib/actions/admin-product";
 import type { ProductFormInput } from "@/lib/validators/product-admin";
 import { Button } from "@/components/ui/button";
+import { ImageUploader } from "@/components/admin/image-uploader";
 
 type Option = { id: string; name: string };
 
@@ -80,27 +81,6 @@ export function ProductForm({
     setColorInput("");
   }
 
-  async function handleFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
-    setError(null);
-    setUploading(true);
-    try {
-      for (const file of Array.from(files)) {
-        const fd = new FormData();
-        fd.append("file", file);
-        const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-        const data = await res.json();
-        if (!res.ok) {
-          setError(data.error ?? "Upload failed.");
-          continue;
-        }
-        setImages((arr) => [...arr, data.url as string]);
-      }
-    } finally {
-      setUploading(false);
-    }
-  }
-
   function submit() {
     setError(null);
     setFieldErrors({});
@@ -147,6 +127,20 @@ export function ProductForm({
   return (
     <div className="max-w-3xl space-y-5" data-testid="product-form">
       {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-accent">{error}</p>}
+
+      {/* Product photos — first (main) shown large, extras beside it */}
+      <section className="rounded-lg border border-hairline bg-surface p-4">
+        <h3 className="text-sm font-bold text-ink">Product Photos</h3>
+        <p className="mb-3 text-xs text-muted">
+          The first image is the <strong>main photo</strong> shown on the product page. Add several — hover a thumbnail and tap ★ to make it the main one.
+        </p>
+        <ImageUploader
+          images={images}
+          onChange={setImages}
+          onError={setError}
+          onUploadingChange={setUploading}
+        />
+      </section>
 
       <Field label="Name" error={fe("name")}>
         <input data-testid="pf-name" className={inputCls} value={form.name} onChange={(e) => set("name", e.target.value)} />
@@ -246,31 +240,6 @@ export function ProductForm({
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Images — upload JPG/PNG */}
-      <div>
-        <span className="mb-2 block text-sm font-medium">Product Images (JPG / PNG)</span>
-        <input
-          type="file"
-          accept="image/jpeg,image/png"
-          multiple
-          data-testid="pf-image-upload"
-          onChange={(e) => handleFiles(e.target.files)}
-          className="block text-sm"
-        />
-        {uploading && <p className="mt-1 text-xs text-muted">Uploading…</p>}
-        {images.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-3" data-testid="pf-images">
-            {images.map((url, i) => (
-              <div key={i} className="relative h-20 w-20 overflow-hidden rounded border border-hairline">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" className="h-full w-full object-cover" />
-                <button type="button" aria-label="Remove image" onClick={() => setImages((arr) => arr.filter((_, j) => j !== i))} className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-white/90 text-muted hover:text-accent"><X className="h-3 w-3" /></button>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="flex gap-3">
