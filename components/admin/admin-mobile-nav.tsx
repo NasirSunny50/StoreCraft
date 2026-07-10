@@ -31,7 +31,7 @@ export function AdminMobileNav({
         aria-label="Open menu"
         data-testid="admin-menu-button"
         onClick={() => setOpen(true)}
-        className="grid h-9 w-9 shrink-0 place-items-center rounded text-white hover:bg-white/10 md:hidden"
+        className="grid h-9 w-9 shrink-0 place-items-center rounded text-ink hover:bg-surface-2 md:hidden"
       >
         <Menu className="h-6 w-6" />
       </button>
