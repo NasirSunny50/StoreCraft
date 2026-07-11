@@ -39,7 +39,7 @@ export const productFormSchema = z.object({
   isActive: z.coerce.boolean().default(true),
   isFeatured: z.coerce.boolean().default(false),
   warranty: z.preprocess(emptyToUndef, z.string().trim().max(120).optional()),
-  colors: z.array(z.string().trim().min(1).max(40)).default([]),
+  colors: z.array(z.string().trim().min(1).max(60)).default([]),
   specs: z.array(specSchema).default([]),
   images: z.array(imageRef).default([]),
 }).refine(

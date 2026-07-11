@@ -9,6 +9,7 @@ import {
   removeCartItemAction,
 } from "@/lib/actions/cart";
 import { cn } from "@/lib/utils/cn";
+import { colorName } from "@/lib/utils/color";
 
 export type CartItemView = {
   productId: string;
@@ -62,7 +63,7 @@ export function CartItemRow({ item }: { item: CartItemView }) {
           {item.name}
         </Link>
         {item.color && (
-          <p className="text-xs text-muted" data-testid="cart-item-color">Color: {item.color}</p>
+          <p className="text-xs text-muted" data-testid="cart-item-color">Color: {colorName(item.color)}</p>
         )}
         <p className="text-sm text-muted">{item.priceFormatted} each</p>
       </div>

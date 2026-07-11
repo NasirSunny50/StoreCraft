@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireStaff } from "@/lib/auth-guard";
 import { getAdminOrder } from "@/lib/queries/admin-misc";
 import { formatBDT } from "@/lib/utils/money";
+import { colorName } from "@/lib/utils/color";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { OrderStatusBadge } from "@/components/order/order-status-badge";
 import { OrderStatusForm } from "@/components/admin/order-status-form";
@@ -36,7 +37,7 @@ export default async function AdminOrderDetailPage({
             <div className="divide-y divide-hairline">
               {order.items.map((it) => (
                 <div key={it.id} className="flex justify-between px-4 py-2.5 text-sm">
-                  <span>{it.name} <span className="text-muted">× {it.quantity}{it.color ? ` · ${it.color}` : ""}</span></span>
+                  <span>{it.name} <span className="text-muted">× {it.quantity}{it.color ? ` · ${colorName(it.color)}` : ""}</span></span>
                   <span className="font-medium">{formatBDT(it.price.times(it.quantity))}</span>
                 </div>
               ))}

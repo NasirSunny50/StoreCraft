@@ -5,6 +5,7 @@ import { requireAuth } from "@/lib/auth-guard";
 import { getOrderByNumberForUser } from "@/lib/queries/order";
 import { canCancelOrder, ORDER_STATUS_FLOW, paymentMethodLabel } from "@/lib/order-math";
 import { formatBDT } from "@/lib/utils/money";
+import { colorName } from "@/lib/utils/color";
 import { cn } from "@/lib/utils/cn";
 import { OrderStatusBadge } from "@/components/order/order-status-badge";
 import { CancelOrderButton } from "@/components/order/cancel-order-button";
@@ -159,7 +160,7 @@ export default async function OrderDetailPage({
                   <div className="font-medium text-ink">{item.name}</div>
                   <div className="text-muted">
                     {formatBDT(item.price)} × {item.quantity}
-                    {item.color ? ` · ${item.color}` : ""}
+                    {item.color ? ` · ${colorName(item.color)}` : ""}
                   </div>
                 </div>
                 <div className="font-medium">

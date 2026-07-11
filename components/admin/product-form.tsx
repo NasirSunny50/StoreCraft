@@ -7,6 +7,7 @@ import { createProduct, updateProduct } from "@/lib/actions/admin-product";
 import type { ProductFormInput } from "@/lib/validators/product-admin";
 import { Button } from "@/components/ui/button";
 import { ImageUploader } from "@/components/admin/image-uploader";
+import { parseColorOption, serializeColorOption, knownHex } from "@/lib/utils/color";
 
 type Option = { id: string; name: string };
 
@@ -66,7 +67,15 @@ export function ProductForm({
   });
   const [colors, setColors] = useState<string[]>(initial?.colors ?? []);
   const [colorInput, setColorInput] = useState("");
-  const [specs, setSpecs] = useState<{ key: string; value: string }[]>(initial?.specs ?? []);
+  const [colorHex, setColorHex] = useState("#111111");
+  // Whether the admin manually touched the palette — until then, a recognised
+  // ("generic") colour name auto-fills the swatch for them.
+  const [hexTouched, setHexTouched] = useState(false);
+  // New products start with one blank spec row so the field is visible upfront;
+  // an empty row is dropped on submit. Editing keeps the product's saved specs.
+  const [specs, setSpecs] = useState<{ key: string; value: string }[]>(
+    initial?.specs ?? [{ key: "", value: "" }],
+  );
   const [images, setImages] = useState<string[]>(initial?.images ?? []);
   const [uploading, setUploading] = useState(false);
 
@@ -75,10 +84,25 @@ export function ProductForm({
   }
   const fe = (k: string) => fieldErrors[k]?.[0];
 
+  function onColorNameChange(value: string) {
+    setColorInput(value);
+    // Generic colour → auto-fill the palette (unless the admin already picked).
+    if (!hexTouched) {
+      const hex = knownHex(value);
+      if (hex) setColorHex(hex);
+    }
+  }
+
   function addColor() {
-    const c = colorInput.trim();
-    if (c && !colors.includes(c)) setColors((arr) => [...arr, c]);
+    const name = colorInput.trim();
+    if (!name) return;
+    const entry = serializeColorOption(name, colorHex);
+    // De-dupe by display name (case-insensitive).
+    const exists = colors.some((c) => parseColorOption(c).name.toLowerCase() === name.toLowerCase());
+    if (!exists) setColors((arr) => [...arr, entry]);
     setColorInput("");
+    setColorHex("#111111");
+    setHexTouched(false);
   }
 
   function submit() {
@@ -197,14 +221,27 @@ export function ProductForm({
 
       {/* Colors */}
       <div>
-        <span className="mb-2 block text-sm font-medium">Color options (optional)</span>
-        <div className="flex gap-2">
+        <span className="mb-1 block text-sm font-medium">Color options (optional)</span>
+        <p className="mb-2 text-xs text-muted">
+          Type the colour name and pick its swatch. Generic colours (Black, Silver, Blue…) fill the swatch automatically.
+        </p>
+        <div className="flex items-center gap-2">
+          <label className="relative h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded border border-hairline-strong" title="Pick swatch colour">
+            <span className="block h-full w-full" style={{ backgroundColor: colorHex }} />
+            <input
+              type="color"
+              value={colorHex}
+              data-testid="pf-color-hex"
+              onChange={(e) => { setColorHex(e.target.value); setHexTouched(true); }}
+              className="absolute inset-0 cursor-pointer opacity-0"
+            />
+          </label>
           <input
             className={inputCls}
-            placeholder="e.g. Black"
+            placeholder="e.g. Black, Space Gray, Sierra Blue"
             value={colorInput}
             data-testid="pf-color-input"
-            onChange={(e) => setColorInput(e.target.value)}
+            onChange={(e) => onColorNameChange(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addColor(); } }}
           />
           <Button type="button" variant="soft" size="sm" data-testid="pf-color-add" onClick={addColor}>
@@ -213,12 +250,16 @@ export function ProductForm({
         </div>
         {colors.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-2" data-testid="pf-colors">
-            {colors.map((c) => (
-              <span key={c} className="inline-flex items-center gap-1 rounded border border-hairline-strong bg-surface px-2 py-1 text-xs">
-                {c}
-                <button type="button" aria-label={`Remove ${c}`} onClick={() => setColors((arr) => arr.filter((x) => x !== c))}><X className="h-3 w-3" /></button>
-              </span>
-            ))}
+            {colors.map((c) => {
+              const { name, swatch } = parseColorOption(c);
+              return (
+                <span key={c} className="inline-flex items-center gap-1.5 rounded border border-hairline-strong bg-surface px-2 py-1 text-xs">
+                  <span aria-hidden className="h-3.5 w-3.5 rounded-full border border-hairline-strong" style={{ backgroundColor: swatch }} />
+                  {name}
+                  <button type="button" aria-label={`Remove ${name}`} onClick={() => setColors((arr) => arr.filter((x) => x !== c))}><X className="h-3 w-3" /></button>
+                </span>
+              );
+            })}
           </div>
         )}
       </div>

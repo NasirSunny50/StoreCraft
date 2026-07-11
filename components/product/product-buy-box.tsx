@@ -7,6 +7,7 @@ import { addToCartAction } from "@/lib/actions/cart";
 import { Button } from "@/components/ui/button";
 import { WishlistButton } from "@/components/wishlist/wishlist-button";
 import { cn } from "@/lib/utils/cn";
+import { parseColorOption } from "@/lib/utils/color";
 
 export function ProductBuyBox({
   productId,
@@ -47,10 +48,12 @@ export function ProductBuyBox({
       {colors.length > 0 && (
         <div className="rounded-lg border border-hairline bg-surface p-4">
           <span className="mb-2 block text-sm font-semibold text-ink">
-            Color: <span className="font-normal text-muted">{color}</span>
+            Color: <span className="font-normal text-muted">{color ? parseColorOption(color).name : ""}</span>
           </span>
           <div className="flex flex-wrap gap-2">
-            {colors.map((c) => (
+            {colors.map((c) => {
+              const { name, swatch } = parseColorOption(c);
+              return (
               <button
                 key={c}
                 type="button"
@@ -67,11 +70,12 @@ export function ProductBuyBox({
                 <span
                   aria-hidden
                   className="h-3.5 w-3.5 rounded-full border border-hairline-strong"
-                  style={{ backgroundColor: c.toLowerCase().replace(/\s+/g, "") }}
+                  style={{ backgroundColor: swatch }}
                 />
-                {c}
+                {name}
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
