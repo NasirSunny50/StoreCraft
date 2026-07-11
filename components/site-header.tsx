@@ -46,7 +46,9 @@ export async function SiteHeader() {
                 Addresses
               </Link>
               <span className="flex items-center gap-2" data-testid="user-greeting">
-                <span className="hidden text-white/80 sm:inline">Hi, {user.name}</span>
+                <Link href="/account/profile" data-testid="nav-profile" className="hidden text-white/80 hover:text-white sm:inline">
+                  Hi, {user.name}
+                </Link>
                 <span data-testid="user-role" className="rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold">
                   {user.role}
                 </span>

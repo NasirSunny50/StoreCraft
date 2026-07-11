@@ -4,9 +4,9 @@ const BASE = "http://localhost:3000";
 const ADMIN = { email: "admin@storecraft.test", password: "Admin@12345" };
 const STAFF = { email: "staff@storecraft.test", password: "Staff@12345" };
 
-async function login(page: Page, email: string, password: string) {
+async function login(page: Page, identifier: string, password: string) {
   await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Mobile number or email").fill(identifier);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   // Wait for the redirect away from /login OR a login error, so callers that
@@ -24,8 +24,10 @@ async function logout(page: Page) {
 
 async function registerFresh(page: Page, prefix: string) {
   const email = `${prefix}_${Date.now()}@e2e.test`;
+  const phone = "0171" + Math.floor(Math.random() * 1e7).toString().padStart(7, "0");
   await page.goto("/register");
   await page.getByLabel("Full name").fill("Buyer");
+  await page.getByLabel("Mobile number").fill(phone);
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill("supersecret");
   await page.getByLabel("Confirm password").fill("supersecret");

@@ -68,6 +68,7 @@ export function MobileMenu({
               <p className="px-4 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wide text-muted">Account</p>
               {isAuthed ? (
                 <>
+                  <Link href="/account/profile" onClick={close} className="block px-4 py-2.5 text-sm text-ink hover:bg-surface-2 hover:text-accent">Profile Information</Link>
                   <Link href="/orders" onClick={close} className="block px-4 py-2.5 text-sm text-ink hover:bg-surface-2 hover:text-accent">My Orders</Link>
                   <Link href="/wishlist" onClick={close} className="block px-4 py-2.5 text-sm text-ink hover:bg-surface-2 hover:text-accent">Wishlist</Link>
                   <Link href="/account/addresses" onClick={close} className="block px-4 py-2.5 text-sm text-ink hover:bg-surface-2 hover:text-accent">Addresses</Link>

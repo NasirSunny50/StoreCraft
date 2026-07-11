@@ -49,7 +49,7 @@ export async function getAdminOrders(opts: {
       skip: opts.skip,
       take: opts.take,
       include: {
-        user: { select: { name: true, email: true } },
+        user: { select: { name: true, email: true, phone: true } },
         _count: { select: { items: true } },
       },
     }),
@@ -64,7 +64,7 @@ export async function getAdminOrder(id: string) {
     include: {
       items: true,
       address: true,
-      user: { select: { name: true, email: true } },
+      user: { select: { name: true, email: true, phone: true } },
       statusLogs: { orderBy: { createdAt: "asc" } },
     },
   });
@@ -93,6 +93,7 @@ export async function getCustomers(opts: { q?: string; skip?: number; take?: num
         id: true,
         name: true,
         email: true,
+        phone: true,
         isBlocked: true,
         createdAt: true,
         _count: { select: { orders: true } },
@@ -110,6 +111,7 @@ export async function getCustomer(id: string) {
       id: true,
       name: true,
       email: true,
+      phone: true,
       role: true,
       isBlocked: true,
       createdAt: true,

@@ -34,6 +34,7 @@ export default async function AdminCustomersPage({
           <thead className="bg-surface-2 text-left text-xs text-muted">
             <tr>
               <th className="px-3 py-2 font-medium">Name</th>
+              <th className="px-3 py-2 font-medium">Phone</th>
               <th className="px-3 py-2 font-medium">Email</th>
               <th className="px-3 py-2 font-medium">Orders</th>
               <th className="px-3 py-2 font-medium">Status</th>
@@ -42,11 +43,12 @@ export default async function AdminCustomersPage({
           </thead>
           <tbody className="divide-y divide-hairline">
             {customers.map((c) => (
-              <tr key={c.id} data-testid="customer-row" data-email={c.email} className="bg-surface">
+              <tr key={c.id} data-testid="customer-row" data-email={c.email ?? ""} className="bg-surface">
                 <td className="px-3 py-2">
                   <Link href={`/admin/customers/${c.id}`} className="font-medium text-link hover:underline">{c.name}</Link>
                 </td>
-                <td className="px-3 py-2 text-muted">{c.email}</td>
+                <td className="px-3 py-2 text-muted">{c.phone ?? "—"}</td>
+                <td className="px-3 py-2 text-muted">{c.email ?? "—"}</td>
                 <td className="px-3 py-2 text-muted">{c._count.orders}</td>
                 <td className="px-3 py-2">
                   <span data-testid="customer-status" className={c.isBlocked ? "font-semibold text-accent" : "text-green-700"}>
@@ -58,7 +60,7 @@ export default async function AdminCustomersPage({
                 </td>
               </tr>
             ))}
-            {customers.length === 0 && <tr><td colSpan={5} className="px-3 py-8 text-center text-muted">No customers.</td></tr>}
+            {customers.length === 0 && <tr><td colSpan={6} className="px-3 py-8 text-center text-muted">No customers.</td></tr>}
           </tbody>
         </table>
       </div>

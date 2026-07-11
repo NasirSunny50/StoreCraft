@@ -12,6 +12,8 @@ function Field({
   autoComplete,
   placeholder,
   errors,
+  required = true,
+  hint,
 }: {
   name: string;
   label: string;
@@ -19,21 +21,25 @@ function Field({
   autoComplete: string;
   placeholder?: string;
   errors?: string[];
+  required?: boolean;
+  hint?: string;
 }) {
   return (
     <div className="space-y-1">
       <label htmlFor={name} className="block text-sm font-medium text-ink">
         {label}
+        {!required && <span className="ml-1 text-xs font-normal text-muted">(optional)</span>}
       </label>
       <input
         id={name}
         name={name}
         type={type}
         autoComplete={autoComplete}
-        required
+        required={required}
         placeholder={placeholder}
         className="w-full rounded border border-hairline-strong bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
       />
+      {hint && <p className="text-xs text-muted">{hint}</p>}
       {errors?.[0] && <p className="text-sm text-accent">{errors[0]}</p>}
     </div>
   );
@@ -60,7 +66,8 @@ export function RegisterForm({ callbackUrl }: { callbackUrl?: string }) {
       )}
 
       <Field name="name" label="Full name" type="text" autoComplete="name" placeholder="Your name" errors={fe?.name} />
-      <Field name="email" label="Email" type="email" autoComplete="email" placeholder="you@example.com" errors={fe?.email} />
+      <Field name="phone" label="Mobile number" type="tel" autoComplete="tel" placeholder="01XXXXXXXXX" errors={fe?.phone} />
+      <Field name="email" label="Email" type="email" autoComplete="email" placeholder="you@example.com" required={false} hint="Add an email to receive order updates by email." errors={fe?.email} />
       <Field name="password" label="Password" type="password" autoComplete="new-password" placeholder="At least 8 characters" errors={fe?.password} />
       <Field name="confirmPassword" label="Confirm password" type="password" autoComplete="new-password" placeholder="Repeat the password" errors={fe?.confirmPassword} />
 

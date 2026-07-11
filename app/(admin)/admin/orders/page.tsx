@@ -74,7 +74,7 @@ export default async function AdminOrdersPage({
                     {o.orderNumber}
                   </Link>
                 </td>
-                <td className="px-3 py-2 text-muted">{o.user.name}<div className="text-xs">{o.user.email}</div></td>
+                <td className="px-3 py-2 text-muted">{o.user.name}<div className="text-xs">{o.user.email ?? "—"}</div></td>
                 <td className="px-3 py-2 text-muted">{o._count.items}</td>
                 <td className="px-3 py-2 font-medium text-accent">{formatBDT(o.total)}</td>
                 <td className="px-3 py-2"><OrderStatusBadge status={o.status} /></td>

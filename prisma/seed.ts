@@ -20,23 +20,25 @@ async function seedUsers() {
   const users: Array<{
     name: string;
     email: string;
+    phone: string;
     password: string;
     role: Role;
     isBlocked?: boolean;
   }> = [
-    { name: "Site Admin", email: "admin@storecraft.test", password: "Admin@12345", role: "ADMIN" },
-    { name: "Store Staff", email: "staff@storecraft.test", password: "Staff@12345", role: "STAFF" },
-    { name: "Test Customer", email: "customer@storecraft.test", password: "Customer@12345", role: "CUSTOMER" },
-    { name: "Blocked Customer", email: "blocked@storecraft.test", password: "Blocked@12345", role: "CUSTOMER", isBlocked: true },
+    { name: "Site Admin", email: "admin@storecraft.test", phone: "01700000001", password: "Admin@12345", role: "ADMIN" },
+    { name: "Store Staff", email: "staff@storecraft.test", phone: "01700000002", password: "Staff@12345", role: "STAFF" },
+    { name: "Test Customer", email: "customer@storecraft.test", phone: "01700000003", password: "Customer@12345", role: "CUSTOMER" },
+    { name: "Blocked Customer", email: "blocked@storecraft.test", phone: "01700000004", password: "Blocked@12345", role: "CUSTOMER", isBlocked: true },
   ];
 
   for (const u of users) {
     await prisma.user.upsert({
       where: { email: u.email },
-      update: { name: u.name, role: u.role, isBlocked: u.isBlocked ?? false },
+      update: { name: u.name, phone: u.phone, role: u.role, isBlocked: u.isBlocked ?? false },
       create: {
         name: u.name,
         email: u.email,
+        phone: u.phone,
         password: await hash(u.password),
         role: u.role,
         isBlocked: u.isBlocked ?? false,

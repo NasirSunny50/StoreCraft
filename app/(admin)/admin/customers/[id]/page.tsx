@@ -27,7 +27,8 @@ export default async function AdminCustomerDetailPage({
 
       <div className="mb-4 flex items-center gap-4 rounded border border-hairline bg-surface p-4 text-sm">
         <div className="flex-1">
-          <div className="text-muted">{customer.email}</div>
+          <div className="text-muted">📱 {customer.phone ?? "—"}</div>
+          <div className="text-muted">✉️ {customer.email ?? "— no email —"}</div>
           <div className="text-muted">Joined {new Date(customer.createdAt).toLocaleDateString()}</div>
           <div className="mt-1">
             Status:{" "}

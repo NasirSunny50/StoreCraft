@@ -81,7 +81,8 @@ export default async function AdminOrderDetailPage({
           <div className="rounded border border-hairline bg-surface p-4 text-sm">
             <h2 className="mb-2 text-sm font-bold">Customer</h2>
             <div className="font-medium">{order.user.name}</div>
-            <div className="text-muted">{order.user.email}</div>
+            <div className="text-muted">{order.user.phone ?? "—"}</div>
+            <div className="text-muted">{order.user.email ?? "— no email —"}</div>
           </div>
           <div className="rounded border border-hairline bg-surface p-4 text-sm">
             <h2 className="mb-2 text-sm font-bold">Delivery Address</h2>

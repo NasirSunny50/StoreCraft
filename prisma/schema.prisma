@@ -49,7 +49,10 @@ enum CouponType {
 model User {
   id        String    @id @default(cuid())
   name      String
-  email     String    @unique
+  // Phone is the primary login identifier (collected at registration).
+  phone     String?   @unique
+  // Email is optional — adding one unlocks email order notifications.
+  email     String?   @unique
   password  String // hashed
   role      Role      @default(CUSTOMER)
   isBlocked Boolean   @default(false)

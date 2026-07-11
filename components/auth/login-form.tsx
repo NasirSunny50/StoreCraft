@@ -25,20 +25,20 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
       )}
 
       <div className="space-y-1">
-        <label htmlFor="email" className="block text-sm font-medium text-ink">
-          Email
+        <label htmlFor="identifier" className="block text-sm font-medium text-ink">
+          Mobile number or email
         </label>
         <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
+          id="identifier"
+          name="identifier"
+          type="text"
+          autoComplete="username"
           required
-          placeholder="you@example.com"
+          placeholder="01XXXXXXXXX or you@example.com"
           className="w-full rounded border border-hairline-strong bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
         />
-        {state?.fieldErrors?.email && (
-          <p className="text-sm text-accent">{state.fieldErrors.email[0]}</p>
+        {state?.fieldErrors?.identifier && (
+          <p className="text-sm text-accent">{state.fieldErrors.identifier[0]}</p>
         )}
       </div>
 

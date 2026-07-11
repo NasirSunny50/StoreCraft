@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/utils/password";
 import { loginSchema } from "@/lib/validators/auth";
+import { findUserByIdentifier } from "@/lib/auth-lookup";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
@@ -12,8 +13,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   logger: {
     error(error) {
       // CredentialsSignin is an expected, user-facing failure (wrong password /
-      // unknown email). We surface a friendly message in the login action, so we
-      // don't need the noisy stack trace in the server logs.
+      // unknown account). We surface a friendly message in the login action, so
+      // we don't need the noisy stack trace in the server logs.
       if (error.name === "CredentialsSignin") return;
       console.error(error);
     },
@@ -21,15 +22,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
       credentials: {
-        email: { label: "Email", type: "email" },
+        identifier: { label: "Mobile number or email", type: "text" },
         password: { label: "Password", type: "password" },
       },
       authorize: async (raw) => {
         const parsed = loginSchema.safeParse(raw);
         if (!parsed.success) return null;
 
-        const { email, password } = parsed.data;
-        const user = await prisma.user.findUnique({ where: { email } });
+        const { identifier, password } = parsed.data;
+        const user = await findUserByIdentifier(identifier);
 
         // Same null return for "no user" and "wrong password" — don't leak which.
         if (!user) return null;

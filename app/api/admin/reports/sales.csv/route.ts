@@ -29,7 +29,7 @@ export async function GET(req: Request) {
       o.orderNumber,
       o.createdAt.toISOString().slice(0, 10),
       o.user.name,
-      o.user.email,
+      o.user.email ?? "",
       o.status,
       o.subtotal.toString(),
       o.discount.toString(),

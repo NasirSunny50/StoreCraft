@@ -22,6 +22,9 @@ export async function notifyOrderPlaced(orderId: string): Promise<void> {
       },
     });
     if (!order) return;
+    // No email on file → the customer opted out of email updates. Nothing to send.
+    if (!order.user.email) return;
+    const userEmail = order.user.email;
 
     const branding = await getBranding();
     const { subject, html } = orderPlacedEmail({
@@ -47,7 +50,7 @@ export async function notifyOrderPlaced(orderId: string): Promise<void> {
       orderUrl: `${siteUrl()}/orders/${order.orderNumber}`,
       paid: order.paymentStatus === "PAID",
     });
-    await sendEmail({ to: order.user.email, subject, html });
+    await sendEmail({ to: userEmail, subject, html });
   } catch (e) {
     console.error("[notifyOrderPlaced failed]", e);
   }
@@ -64,6 +67,8 @@ export async function notifyOrderStatus(
       include: { user: { select: { name: true, email: true } } },
     });
     if (!order) return;
+    if (!order.user.email) return;
+    const userEmail = order.user.email;
 
     const branding = await getBranding();
     const { subject, html } = orderStatusEmail({
@@ -77,7 +82,7 @@ export async function notifyOrderStatus(
       trackingNumber: order.trackingNumber,
       trackingUrl: order.trackingUrl,
     });
-    await sendEmail({ to: order.user.email, subject, html });
+    await sendEmail({ to: userEmail, subject, html });
   } catch (e) {
     console.error("[notifyOrderStatus failed]", e);
   }

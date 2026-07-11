@@ -6,11 +6,16 @@ const STAFF = { email: "staff@storecraft.test", password: "Staff@12345" };
 const CUSTOMER = { email: "customer@storecraft.test", password: "Customer@12345" };
 const BLOCKED = { email: "blocked@storecraft.test", password: "Blocked@12345" };
 
-async function login(page: Page, email: string, password: string) {
+async function login(page: Page, identifier: string, password: string) {
   await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Mobile number or email").fill(identifier);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
+}
+
+/** Unique valid BD mobile number for a fresh registration. */
+function randomPhone() {
+  return "0171" + Math.floor(Math.random() * 1e7).toString().padStart(7, "0");
 }
 
 test.describe("Guest access", () => {
@@ -34,6 +39,7 @@ test.describe("Registration", () => {
     const email = `e2e_${Date.now()}@e2e.test`;
     await page.goto("/register");
     await page.getByLabel("Full name").fill("E2E User");
+    await page.getByLabel("Mobile number").fill(randomPhone());
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password", { exact: true }).fill("supersecret");
     await page.getByLabel("Confirm password").fill("supersecret");
@@ -47,6 +53,7 @@ test.describe("Registration", () => {
   test("shows field error when passwords do not match", async ({ page }) => {
     await page.goto("/register");
     await page.getByLabel("Full name").fill("Mismatch User");
+    await page.getByLabel("Mobile number").fill(randomPhone());
     await page.getByLabel("Email").fill(`mismatch_${Date.now()}@e2e.test`);
     await page.getByLabel("Password", { exact: true }).fill("supersecret");
     await page.getByLabel("Confirm password").fill("different");
@@ -59,6 +66,7 @@ test.describe("Registration", () => {
   test("rejects duplicate email", async ({ page }) => {
     await page.goto("/register");
     await page.getByLabel("Full name").fill("Dup User");
+    await page.getByLabel("Mobile number").fill(randomPhone());
     await page.getByLabel("Email").fill(CUSTOMER.email);
     await page.getByLabel("Password", { exact: true }).fill("supersecret");
     await page.getByLabel("Confirm password").fill("supersecret");
@@ -71,9 +79,7 @@ test.describe("Registration", () => {
 test.describe("Login", () => {
   test("invalid credentials show an error", async ({ page }) => {
     await login(page, CUSTOMER.email, "wrongpassword");
-    await expect(page.getByTestId("form-error")).toContainText(
-      "Invalid email or password",
-    );
+    await expect(page.getByTestId("form-error")).toContainText("Invalid");
     await expect(page).toHaveURL(/\/login/);
   });
 

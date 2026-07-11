@@ -5,13 +5,16 @@ import { AuthError } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/lib/auth";
 import { hashPassword } from "@/lib/utils/password";
-import { registerSchema, loginSchema } from "@/lib/validators/auth";
-import { ADMIN_PORTAL_ROLES } from "@/lib/auth-guard";
+import { registerSchema, loginSchema, profileSchema } from "@/lib/validators/auth";
+import { ADMIN_PORTAL_ROLES, requireAuth } from "@/lib/auth-guard";
+import { revalidatePath } from "next/cache";
+import { findUserByIdentifier } from "@/lib/auth-lookup";
 import { mergeGuestCartIntoUser } from "@/lib/cart";
 import { safeCallbackUrl } from "@/lib/utils/safe-redirect";
 
 export type AuthFormState = {
   error?: string;
+  success?: string;
   fieldErrors?: Record<string, string[]>;
 } | null;
 
@@ -21,6 +24,7 @@ export async function registerAction(
 ): Promise<AuthFormState> {
   const parsed = registerSchema.safeParse({
     name: formData.get("name"),
+    phone: formData.get("phone"),
     email: formData.get("email"),
     password: formData.get("password"),
     confirmPassword: formData.get("confirmPassword"),
@@ -30,27 +34,39 @@ export async function registerAction(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  const { name, email, password } = parsed.data;
+  const { name, phone, email, password } = parsed.data;
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
+  // Phone is the login identifier — it must be unique.
+  const phoneTaken = await prisma.user.findUnique({ where: { phone } });
+  if (phoneTaken) {
     return {
-      error: "An account with this email already exists.",
-      fieldErrors: { email: ["Email already registered"] },
+      error: "An account with this mobile number already exists.",
+      fieldErrors: { phone: ["Mobile number already registered"] },
     };
+  }
+  // Email is optional, but when given it must be unique too.
+  if (email) {
+    const emailTaken = await prisma.user.findUnique({ where: { email } });
+    if (emailTaken) {
+      return {
+        error: "An account with this email already exists.",
+        fieldErrors: { email: ["Email already registered"] },
+      };
+    }
   }
 
   const created = await prisma.user.create({
     data: {
       name,
-      email,
+      phone,
+      email: email ?? null,
       password: await hashPassword(password),
       role: "CUSTOMER",
     },
   });
 
-  // Auto-login the new customer, then fold any guest cart into their account.
-  await signIn("credentials", { email, password, redirect: false });
+  // Auto-login the new customer (by phone), then fold any guest cart in.
+  await signIn("credentials", { identifier: phone, password, redirect: false });
   await mergeGuestCartIntoUser(created.id);
   redirect(safeCallbackUrl(formData.get("callbackUrl")) ?? "/");
 }
@@ -60,7 +76,7 @@ export async function loginAction(
   formData: FormData,
 ): Promise<AuthFormState> {
   const parsed = loginSchema.safeParse({
-    email: formData.get("email"),
+    identifier: formData.get("identifier"),
     password: formData.get("password"),
   });
 
@@ -68,19 +84,19 @@ export async function loginAction(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  const { email, password } = parsed.data;
+  const { identifier, password } = parsed.data;
 
   // Pre-check: gives a precise blocked message + the role for redirect target.
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await findUserByIdentifier(identifier);
   if (user?.isBlocked) {
     return { error: "Your account has been blocked. Please contact support." };
   }
 
   try {
-    await signIn("credentials", { email, password, redirect: false });
+    await signIn("credentials", { identifier, password, redirect: false });
   } catch (error) {
     if (error instanceof AuthError) {
-      return { error: "Invalid email or password." };
+      return { error: "Invalid mobile number/email or password." };
     }
     throw error;
   }
@@ -93,6 +109,43 @@ export async function loginAction(
     safeCallbackUrl(formData.get("callbackUrl")) ??
     (user && ADMIN_PORTAL_ROLES.includes(user.role) ? "/admin" : "/");
   redirect(dest);
+}
+
+/** Update the signed-in user's profile (name + optional email). Phone is fixed. */
+export async function updateProfileAction(
+  _prev: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const session = await requireAuth();
+
+  const parsed = profileSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+  });
+  if (!parsed.success) {
+    return { fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+  const { name, email } = parsed.data;
+
+  // If an email is set, it must not belong to another account.
+  if (email) {
+    const other = await prisma.user.findUnique({ where: { email } });
+    if (other && other.id !== session.user.id) {
+      return {
+        error: "That email is already used by another account.",
+        fieldErrors: { email: ["Email already in use"] },
+      };
+    }
+  }
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { name, email: email ?? null },
+  });
+
+  revalidatePath("/account/profile");
+  revalidatePath("/", "layout");
+  return { success: "Profile updated." };
 }
 
 export async function logoutAction() {
