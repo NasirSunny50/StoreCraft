@@ -11,6 +11,7 @@ import { ProductSection } from "@/components/product/product-section";
 import { StarRating } from "@/components/product/star-rating";
 import { ProductBuyBox } from "@/components/product/product-buy-box";
 import { ProductTabs } from "@/components/product/product-tabs";
+import { CompareDetailButton } from "@/components/compare/compare-detail-button";
 
 export async function generateMetadata({
   params,
@@ -125,6 +126,10 @@ export default async function ProductDetailPage({
                 isAuthed={isAuthed}
                 initiallyInWishlist={inWishlist}
               />
+            </div>
+
+            <div className="mt-4">
+              <CompareDetailButton productId={product.id} />
             </div>
 
             {/* Info strips */}

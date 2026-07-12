@@ -4,6 +4,8 @@ import { getBranding } from "@/lib/branding";
 import { SiteHeader } from "@/components/site-header";
 import { BrandLogo } from "@/components/brand-logo";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { CompareProvider } from "@/components/compare/compare-context";
+import { CompareBar } from "@/components/compare/compare-bar";
 
 export default async function ShopLayout({
   children,
@@ -11,12 +13,14 @@ export default async function ShopLayout({
   const [session, branding] = await Promise.all([auth(), getBranding()]);
 
   return (
+    <CompareProvider>
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 pb-24 lg:pb-5">
         {children}
       </main>
 
+      <CompareBar />
       <MobileBottomNav isAuthed={!!session?.user} />
 
       <footer className="mt-10 bg-navbar text-white/70">
@@ -71,5 +75,6 @@ export default async function ShopLayout({
         </div>
       </footer>
     </div>
+    </CompareProvider>
   );
 }

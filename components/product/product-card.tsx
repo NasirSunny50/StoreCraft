@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { BuyNowButton } from "@/components/cart/buy-now-button";
 import { CardWishlistButton } from "@/components/wishlist/card-wishlist-button";
+import { CompareToggle } from "@/components/compare/compare-toggle";
 import { StarRating } from "@/components/product/star-rating";
 import type { ProductCardData } from "@/lib/view/product-card-data";
 
@@ -18,6 +19,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
       className="group relative flex flex-col rounded border border-hairline bg-surface transition-all hover:border-accent hover:shadow-card-hover"
     >
       <CardWishlistButton productId={product.id} />
+      <CompareToggle productId={product.id} />
 
       <Link href={href} className="block">
         <div className="grid aspect-square place-items-center p-4">
