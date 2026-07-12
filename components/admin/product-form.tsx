@@ -8,6 +8,7 @@ import type { ProductFormInput } from "@/lib/validators/product-admin";
 import { Button } from "@/components/ui/button";
 import { ImageUploader } from "@/components/admin/image-uploader";
 import { parseColorOption, serializeColorOption, knownHex } from "@/lib/utils/color";
+import { slugify } from "@/lib/utils/slug";
 
 type Option = { id: string; name: string };
 
@@ -78,6 +79,9 @@ export function ProductForm({
   );
   const [images, setImages] = useState<string[]>(initial?.images ?? []);
   const [uploading, setUploading] = useState(false);
+  // Auto-fill the slug from the name until the admin edits the slug directly.
+  // Editing an existing product starts "touched" so its saved slug is kept.
+  const [slugTouched, setSlugTouched] = useState(Boolean(initial?.slug));
 
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -167,11 +171,26 @@ export function ProductForm({
       </section>
 
       <Field label="Name" error={fe("name")}>
-        <input data-testid="pf-name" className={inputCls} value={form.name} onChange={(e) => set("name", e.target.value)} />
+        <input
+          data-testid="pf-name"
+          className={inputCls}
+          value={form.name}
+          onChange={(e) => {
+            const name = e.target.value;
+            // Keep the slug mirroring the name until the admin edits it directly.
+            setForm((f) => ({ ...f, name, slug: slugTouched ? f.slug : slugify(name) }));
+          }}
+        />
       </Field>
 
       <Field label="Slug (optional — auto-generated)" error={fe("slug")}>
-        <input className={inputCls} value={form.slug} onChange={(e) => set("slug", e.target.value)} placeholder="auto" />
+        <input
+          data-testid="pf-slug"
+          className={inputCls}
+          value={form.slug}
+          onChange={(e) => { setSlugTouched(true); set("slug", e.target.value); }}
+          placeholder="auto-generated from name"
+        />
       </Field>
 
       <Field label="Description" error={fe("description")}>
