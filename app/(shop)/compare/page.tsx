@@ -59,15 +59,27 @@ export default async function ComparePage({
       </h1>
 
       <div className="overflow-x-auto rounded-lg border border-hairline">
-        <table className="w-full border-collapse text-[13px] md:text-sm">
+        {/* table-fixed + a colgroup keeps every product column an equal width;
+            minWidth keeps columns readable and enables horizontal scroll when
+            comparing 3-4 products on a narrow screen. */}
+        <table
+          className="w-full table-fixed border-collapse text-[13px] md:text-sm"
+          style={{ minWidth: `${products.length * 130 + 80}px` }}
+        >
+          <colgroup>
+            <col className="w-20 md:w-44" />
+            {products.map((p) => (
+              <col key={p.id} />
+            ))}
+          </colgroup>
           <tbody>
             {/* Product header */}
             <tr className="border-b border-hairline">
-              <th className="sticky left-0 z-10 w-20 bg-surface-2 p-2 text-left align-top text-[11px] font-semibold uppercase text-muted md:w-40 md:p-3 md:text-xs">
+              <th className="sticky left-0 z-10 bg-surface-2 p-2 text-left align-top text-[11px] font-semibold uppercase text-muted md:p-3 md:text-xs">
                 Product
               </th>
               {products.map((p) => (
-                <td key={p.id} className="min-w-[7.5rem] border-l border-hairline p-2 align-top md:min-w-[11rem] md:p-3">
+                <td key={p.id} className="border-l border-hairline p-2 align-top md:p-3">
                   <div className="space-y-2">
                     <Link href={`/products/${p.slug}`} className="block">
                       <div className="grid aspect-square max-h-28 place-items-center rounded border border-hairline bg-surface p-2 md:max-h-40">
@@ -195,6 +207,6 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 function Cell({ children }: { children: React.ReactNode }) {
   return (
-    <td className="border-l border-hairline p-2 align-top text-ink md:p-3">{children}</td>
+    <td className="border-l border-hairline p-2 align-top text-ink [overflow-wrap:anywhere] md:p-3">{children}</td>
   );
 }
