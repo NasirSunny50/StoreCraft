@@ -316,3 +316,14 @@ model Setting {
   value     String
   updatedAt DateTime @updatedAt
 }
+
+/// Failed-login audit rows for brute-force throttling. One row per failed
+/// attempt, keyed by client IP; old rows are pruned opportunistically. Success
+/// clears the IP's recent failures.
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  ip        String
+  createdAt DateTime @default(now())
+
+  @@index([ip, createdAt])
+}

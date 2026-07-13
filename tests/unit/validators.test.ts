@@ -6,8 +6,8 @@ describe("registerSchema", () => {
     name: "Jane Doe",
     phone: "01712345678",
     email: "Jane@Example.com",
-    password: "supersecret",
-    confirmPassword: "supersecret",
+    password: "supersecret1",
+    confirmPassword: "supersecret1",
   };
 
   it("accepts valid input, normalizes email + phone", () => {
@@ -45,6 +45,16 @@ describe("registerSchema", () => {
 
   it("rejects passwords shorter than 8 characters", () => {
     const result = registerSchema.safeParse({ ...valid, password: "short", confirmPassword: "short" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a letters-only password (no number)", () => {
+    const result = registerSchema.safeParse({ ...valid, password: "onlyletters", confirmPassword: "onlyletters" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a digits-only password (no letter)", () => {
+    const result = registerSchema.safeParse({ ...valid, password: "12345678", confirmPassword: "12345678" });
     expect(result.success).toBe(false);
   });
 

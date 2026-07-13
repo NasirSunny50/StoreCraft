@@ -11,6 +11,13 @@ import { revalidatePath } from "next/cache";
 import { findUserByIdentifier } from "@/lib/auth-lookup";
 import { mergeGuestCartIntoUser } from "@/lib/cart";
 import { safeCallbackUrl } from "@/lib/utils/safe-redirect";
+import {
+  getClientIp,
+  isLoginRateLimited,
+  recordLoginFailure,
+  clearLoginFailures,
+  LOGIN_RATE_LIMIT_MESSAGE,
+} from "@/lib/security/rate-limit";
 
 export type AuthFormState = {
   error?: string;
@@ -86,6 +93,13 @@ export async function loginAction(
 
   const { identifier, password } = parsed.data;
 
+  // Brute-force throttle: block this IP once it has burned through too many
+  // failed attempts inside the window.
+  const ip = await getClientIp();
+  if (await isLoginRateLimited(ip)) {
+    return { error: LOGIN_RATE_LIMIT_MESSAGE };
+  }
+
   // Pre-check: gives a precise blocked message + the role for redirect target.
   const user = await findUserByIdentifier(identifier);
   if (user?.isBlocked) {
@@ -96,10 +110,14 @@ export async function loginAction(
     await signIn("credentials", { identifier, password, redirect: false });
   } catch (error) {
     if (error instanceof AuthError) {
+      await recordLoginFailure(ip);
       return { error: "Invalid mobile number/email or password." };
     }
     throw error;
   }
+
+  // Successful auth — reset this IP's failure history.
+  await clearLoginFailures(ip);
 
   // Fold any guest cart into the now-authenticated account.
   if (user) await mergeGuestCartIntoUser(user.id);

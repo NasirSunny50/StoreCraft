@@ -6,7 +6,11 @@ import { loginSchema } from "@/lib/validators/auth";
 import { findUserByIdentifier } from "@/lib/auth-lookup";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+    updateAge: 24 * 60 * 60, // refresh the JWT at most once per day
+  },
   pages: {
     signIn: "/login",
   },
