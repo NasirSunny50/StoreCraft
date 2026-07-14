@@ -22,15 +22,20 @@ export async function notifyOrderPlaced(orderId: string): Promise<void> {
       },
     });
     if (!order) return;
-    // No email on file → the customer opted out of email updates. Nothing to send.
-    if (!order.user.email) return;
-    const userEmail = order.user.email;
+    // Email may come from the account (user) or a guest-checkout email. None on
+    // file → the customer opted out of email updates. Nothing to send.
+    const userEmail = order.user?.email ?? order.guestEmail;
+    if (!userEmail) return;
+    // Guests have no /orders page — point their links at public tracking.
+    const orderUrl = order.userId
+      ? `${siteUrl()}/orders/${order.orderNumber}`
+      : `${siteUrl()}/track?order=${encodeURIComponent(order.orderNumber)}`;
 
     const branding = await getBranding();
     const { subject, html } = orderPlacedEmail({
       brand: { shopName: branding.shopName, hotline: branding.hotline },
       orderNumber: order.orderNumber,
-      customerName: order.user.name,
+      customerName: order.user?.name ?? order.address.fullName,
       items: order.items.map((i) => ({
         name: i.name,
         quantity: i.quantity,
@@ -47,7 +52,7 @@ export async function notifyOrderPlaced(orderId: string): Promise<void> {
           .filter(Boolean)
           .join(", "),
       ],
-      orderUrl: `${siteUrl()}/orders/${order.orderNumber}`,
+      orderUrl,
       paid: order.paymentStatus === "PAID",
     });
     await sendEmail({ to: userEmail, subject, html });
@@ -64,20 +69,26 @@ export async function notifyOrderStatus(
   try {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { user: { select: { name: true, email: true } } },
+      include: {
+        user: { select: { name: true, email: true } },
+        address: { select: { fullName: true } },
+      },
     });
     if (!order) return;
-    if (!order.user.email) return;
-    const userEmail = order.user.email;
+    const userEmail = order.user?.email ?? order.guestEmail;
+    if (!userEmail) return;
+    const orderUrl = order.userId
+      ? `${siteUrl()}/orders/${order.orderNumber}`
+      : `${siteUrl()}/track?order=${encodeURIComponent(order.orderNumber)}`;
 
     const branding = await getBranding();
     const { subject, html } = orderStatusEmail({
       brand: { shopName: branding.shopName, hotline: branding.hotline },
       orderNumber: order.orderNumber,
-      customerName: order.user.name,
+      customerName: order.user?.name ?? order.address.fullName,
       status,
       note,
-      orderUrl: `${siteUrl()}/orders/${order.orderNumber}`,
+      orderUrl,
       trackingCarrier: order.trackingCarrier,
       trackingNumber: order.trackingNumber,
       trackingUrl: order.trackingUrl,

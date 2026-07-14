@@ -3,8 +3,11 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth-guard";
+import { auth } from "@/lib/auth";
+import { getGuestCartSessionId } from "@/lib/cart";
 import {
   createOrderForUser,
+  createGuestOrder,
   cancelOrder,
   failOrderPaymentByNumber,
   CheckoutError,
@@ -16,7 +19,7 @@ import {
 } from "@/lib/payment";
 import { sslcommerzConfigured } from "@/lib/sslcommerz";
 import { notifyOrderPlaced, notifyOrderStatus } from "@/lib/notify-order";
-import { placeOrderSchema } from "@/lib/validators/checkout";
+import { placeOrderSchema, guestCheckoutSchema } from "@/lib/validators/checkout";
 
 export type PlaceOrderState = {
   error?: string;
@@ -82,6 +85,60 @@ export async function placeOrderAction(
   revalidatePath("/orders");
   revalidatePath("/", "layout"); // cart badge
   redirect(`/orders/${order.orderNumber}?placed=1`);
+}
+
+/**
+ * Guest checkout (no account) — Cash on Delivery only. Contact + shipping come
+ * from the form; the order is tracked afterwards via /track (order no + phone).
+ */
+export async function placeGuestOrderAction(
+  _prev: PlaceOrderState,
+  formData: FormData,
+): Promise<PlaceOrderState> {
+  // A logged-in user should go through the normal checkout, not this path.
+  const session = await auth();
+  if (session?.user) {
+    return { error: "You're signed in — please use the standard checkout." };
+  }
+
+  const parsed = guestCheckoutSchema.safeParse({
+    fullName: formData.get("fullName"),
+    phone: formData.get("phone"),
+    line1: formData.get("line1"),
+    line2: formData.get("line2"),
+    city: formData.get("city"),
+    area: formData.get("area"),
+    postcode: formData.get("postcode"),
+    email: formData.get("email"),
+    note: formData.get("note"),
+    couponCode: formData.get("couponCode"),
+  });
+  if (!parsed.success) {
+    return { fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+
+  const sessionId = await getGuestCartSessionId();
+  if (!sessionId) {
+    return { error: "Your cart session has expired. Please add items again." };
+  }
+
+  const { email, note, couponCode, ...address } = parsed.data;
+
+  let order: { id: string; orderNumber: string };
+  try {
+    order = await createGuestOrder({ sessionId, address, email, note, couponCode });
+  } catch (e) {
+    if (e instanceof CheckoutError) return { error: e.message };
+    throw e;
+  }
+
+  await notifyOrderPlaced(order.id); // never throws
+  revalidatePath("/cart");
+  revalidatePath("/", "layout"); // cart badge
+  // Guests have no order history page; send them to tracking (pre-filled).
+  redirect(
+    `/track?order=${encodeURIComponent(order.orderNumber)}&phone=${encodeURIComponent(address.phone)}&placed=1`,
+  );
 }
 
 /**

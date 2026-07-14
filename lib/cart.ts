@@ -35,6 +35,11 @@ async function getSessionUserId(): Promise<string | null> {
   return session?.user?.id ?? null;
 }
 
+/** The current guest cart's session id from the cookie, if any (read-only). */
+export async function getGuestCartSessionId(): Promise<string | null> {
+  return (await cookies()).get(CART_COOKIE)?.value ?? null;
+}
+
 /**
  * Read-only cart resolution — safe to call from Server Components. Never writes
  * cookies or rows. Returns null when there is no cart yet.

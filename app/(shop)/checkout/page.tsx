@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { ArrowLeft, ShoppingCart, PackageCheck } from "lucide-react";
-import { requireAuth } from "@/lib/auth-guard";
+import { ArrowLeft, ShoppingCart, PackageCheck, LogIn } from "lucide-react";
+import { auth } from "@/lib/auth";
 import { getCart, liveCartItems, cartSubtotal } from "@/lib/cart";
 import { getUserAddresses } from "@/lib/queries/address";
 import { sslcommerzConfigured } from "@/lib/sslcommerz";
@@ -11,12 +11,13 @@ import {
   type AddressView,
   type SummaryView,
 } from "@/components/checkout/checkout-form";
+import { GuestCheckoutForm } from "@/components/checkout/guest-checkout-form";
 import { AddressForm } from "@/components/checkout/address-form";
 
 export const metadata = { title: "Checkout" };
 
 export default async function CheckoutPage() {
-  const session = await requireAuth("/checkout");
+  const session = await auth();
   const cart = await getCart();
   const items = liveCartItems(cart);
 
@@ -32,7 +33,8 @@ export default async function CheckoutPage() {
     );
   }
 
-  const addresses = await getUserAddresses(session.user.id);
+  const user = session?.user;
+  const addresses = user ? await getUserAddresses(user.id) : [];
   const addressViews: AddressView[] = addresses.map((a) => ({
     id: a.id,
     fullName: a.fullName,
@@ -91,20 +93,39 @@ export default async function CheckoutPage() {
         <h1 className="text-xl font-bold text-ink md:text-2xl">Checkout &amp; Confirm Order</h1>
       </div>
 
-      {addressViews.length > 0 ? (
+      {!user && (
+        <div
+          data-testid="guest-signin-nudge"
+          className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hairline bg-surface-2 px-4 py-3 text-sm"
+        >
+          <span className="text-muted">
+            Checking out as a guest. Have an account?
+          </span>
+          <Link
+            href="/login?callbackUrl=/checkout"
+            className="inline-flex items-center gap-1.5 rounded-full border border-hairline-strong bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:border-accent hover:text-accent"
+          >
+            <LogIn className="h-3.5 w-3.5" /> Sign in for faster checkout
+          </Link>
+        </div>
+      )}
+
+      {!user ? (
+        <GuestCheckoutForm summary={summary} deliveryFees={deliveryFees} />
+      ) : addressViews.length > 0 ? (
         <CheckoutForm
           addresses={addressViews}
           summary={summary}
           deliveryFees={deliveryFees}
           onlineEnabled={sslcommerzConfigured()}
-          defaultFullName={session.user.name ?? undefined}
+          defaultFullName={user.name ?? undefined}
         />
       ) : (
         <div className="max-w-2xl rounded-lg border border-hairline bg-surface p-4">
           <p className="mb-3 text-sm text-muted" data-testid="checkout-no-address">
             Add a delivery address to continue.
           </p>
-          <AddressForm defaultFullName={session.user.name ?? undefined} />
+          <AddressForm defaultFullName={user.name ?? undefined} />
         </div>
       )}
     </div>

@@ -50,6 +50,8 @@ export async function getAdminOrders(opts: {
       take: opts.take,
       include: {
         user: { select: { name: true, email: true, phone: true } },
+        // Guest orders have no user — fall back to the shipping address.
+        address: { select: { fullName: true, phone: true } },
         _count: { select: { items: true } },
       },
     }),

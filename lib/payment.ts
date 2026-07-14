@@ -20,8 +20,9 @@ function initiateForOrder(order: OrderForPayment): Promise<{ gatewayUrl: string 
     amount: order.total.toFixed(2),
     customer: {
       name: order.address.fullName,
-      // SSLCommerz requires an email; fall back when the customer has none.
-      email: order.user.email ?? "noreply@storecraft.app",
+      // SSLCommerz requires an email; fall back when the customer has none
+      // (or when this is a guest order with only an optional guestEmail).
+      email: order.user?.email ?? order.guestEmail ?? "noreply@storecraft.app",
       phone: order.address.phone,
       address: order.address.line1,
       city: order.address.city,

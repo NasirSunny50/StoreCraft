@@ -66,7 +66,11 @@ export async function getSalesReport(from?: Date, to?: Date) {
       ...(from || to ? { createdAt } : {}),
     },
     orderBy: { createdAt: "desc" },
-    include: { user: { select: { name: true, email: true } } },
+    include: {
+      user: { select: { name: true, email: true } },
+      // Guest orders have no user — fall back to the shipping address.
+      address: { select: { fullName: true } },
+    },
   });
 
   const total = orders.reduce(

@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { Search, Truck, ExternalLink, PackageSearch } from "lucide-react";
+import { Search, Truck, ExternalLink, PackageSearch, CheckCircle2 } from "lucide-react";
 import { getOrderForTracking } from "@/lib/queries/order";
-import { ORDER_STATUS_FLOW } from "@/lib/order-math";
+import { ORDER_STATUS_FLOW, paymentMethodLabel } from "@/lib/order-math";
+import { formatBDT } from "@/lib/utils/money";
+import { colorName } from "@/lib/utils/color";
 import { OrderStatusBadge } from "@/components/order/order-status-badge";
 import { cn } from "@/lib/utils/cn";
 
@@ -10,11 +12,12 @@ export const metadata = { title: "Track Order" };
 export default async function TrackOrderPage({
   searchParams,
 }: {
-  searchParams: Promise<{ order?: string; phone?: string }>;
+  searchParams: Promise<{ order?: string; phone?: string; placed?: string }>;
 }) {
-  const { order: orderNumber, phone } = await searchParams;
+  const { order: orderNumber, phone, placed } = await searchParams;
   const searched = Boolean(orderNumber && phone);
   const order = searched ? await getOrderForTracking(orderNumber!, phone!) : null;
+  const justPlaced = placed === "1" && Boolean(order);
 
   const inputCls =
     "w-full rounded-lg border border-hairline-strong px-3 py-2 text-sm focus:border-accent focus:outline-none";
@@ -29,6 +32,19 @@ export default async function TrackOrderPage({
           Enter your order number and the phone number on the order to see its status.
         </p>
       </div>
+
+      {justPlaced && (
+        <div
+          data-testid="guest-order-confirmation"
+          className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+        >
+          <CheckCircle2 className="h-5 w-5 shrink-0" />
+          <span>
+            Thank you! Your order <strong>{order!.orderNumber}</strong> has been placed.
+            Save this order number to track it anytime.
+          </span>
+        </div>
+      )}
 
       <form method="get" className="grid gap-3 rounded-lg border border-hairline bg-surface p-4 sm:grid-cols-[1fr_1fr_auto]">
         <div>
@@ -119,6 +135,50 @@ export default async function TrackOrderPage({
                 })}
               </ol>
             )}
+          </div>
+
+          {/* Items + totals */}
+          <div className="rounded-lg border border-hairline bg-surface" data-testid="track-items">
+            <div className="border-b border-hairline px-4 py-3">
+              <h3 className="text-sm font-bold">Order Items</h3>
+            </div>
+            <div className="divide-y divide-hairline">
+              {order.items.map((item) => (
+                <div key={item.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                  <div>
+                    <div className="font-medium text-ink">{item.name}</div>
+                    <div className="text-muted">
+                      {formatBDT(item.price)} × {item.quantity}
+                      {item.color ? ` · ${colorName(item.color)}` : ""}
+                    </div>
+                  </div>
+                  <div className="font-medium">{formatBDT(item.price.times(item.quantity))}</div>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-1.5 border-t border-hairline px-4 py-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted">Subtotal</span>
+                <span>{formatBDT(order.subtotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted">Shipping</span>
+                <span>{formatBDT(order.shippingFee)}</span>
+              </div>
+              {order.discount.greaterThan(0) && (
+                <div className="flex justify-between">
+                  <span className="text-muted">Discount</span>
+                  <span>− {formatBDT(order.discount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-hairline pt-2 text-base font-bold">
+                <span>Total</span>
+                <span className="text-accent">{formatBDT(order.total)}</span>
+              </div>
+              <div className="pt-1 text-xs text-muted">
+                {paymentMethodLabel(order.paymentMethod)} · {order.paymentStatus}
+              </div>
+            </div>
           </div>
 
           {(order.trackingCarrier || order.trackingNumber || order.trackingUrl) && (

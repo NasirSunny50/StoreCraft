@@ -28,8 +28,8 @@ export async function GET(req: Request) {
     rows.push([
       o.orderNumber,
       o.createdAt.toISOString().slice(0, 10),
-      o.user.name,
-      o.user.email ?? "",
+      o.user?.name ?? `${o.address.fullName} (Guest)`,
+      o.user?.email ?? o.guestEmail ?? "",
       o.status,
       o.subtotal.toString(),
       o.discount.toString(),

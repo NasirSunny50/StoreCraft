@@ -80,10 +80,15 @@ export default async function AdminOrderDetailPage({
             />
           </div>
           <div className="rounded border border-hairline bg-surface p-4 text-sm">
-            <h2 className="mb-2 text-sm font-bold">Customer</h2>
-            <div className="font-medium">{order.user.name}</div>
-            <div className="text-muted">{order.user.phone ?? "—"}</div>
-            <div className="text-muted">{order.user.email ?? "— no email —"}</div>
+            <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold">
+              Customer
+              {!order.userId && (
+                <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted">Guest</span>
+              )}
+            </h2>
+            <div className="font-medium">{order.user?.name ?? order.address.fullName}</div>
+            <div className="text-muted">{order.user?.phone ?? order.address.phone}</div>
+            <div className="text-muted">{order.user?.email ?? order.guestEmail ?? "— no email —"}</div>
           </div>
           <div className="rounded border border-hairline bg-surface p-4 text-sm">
             <h2 className="mb-2 text-sm font-bold">Delivery Address</h2>

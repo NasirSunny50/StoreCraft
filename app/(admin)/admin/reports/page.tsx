@@ -84,7 +84,7 @@ export default async function ReportsPage({
               {pagedOrders.map((o) => (
                 <tr key={o.id} className="bg-surface">
                   <td className="px-3 py-2 font-medium">{o.orderNumber}</td>
-                  <td className="px-3 py-2 text-muted">{o.user.name}</td>
+                  <td className="px-3 py-2 text-muted">{o.user?.name ?? `${o.address.fullName} (Guest)`}</td>
                   <td className="px-3 py-2"><OrderStatusBadge status={o.status} /></td>
                   <td className="px-3 py-2 font-medium text-accent">{formatBDT(o.total)}</td>
                   <td className="px-3 py-2 text-muted">{new Date(o.createdAt).toLocaleDateString()}</td>
