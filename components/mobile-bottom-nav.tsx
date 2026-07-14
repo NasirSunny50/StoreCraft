@@ -18,7 +18,7 @@ export function MobileBottomNav({ isAuthed }: { isAuthed: boolean }) {
   const items = [
     { href: "/", label: "Home", icon: Home, match: (p: string) => p === "/" },
     { href: "/categories", label: "Categories", icon: LayoutGrid, match: (p: string) => p.startsWith("/categories") || p.startsWith("/category") || p.startsWith("/products") },
-    { href: "/products?sort=price-asc", label: "Offers", icon: Tag, match: () => false },
+    { href: "/offers", label: "Offers", icon: Tag, match: (p: string) => p.startsWith("/offers") },
     { href: isAuthed ? "/orders" : "/login", label: "Account", icon: User, match: (p: string) => p.startsWith("/orders") || p.startsWith("/account") || p.startsWith("/login") },
   ];
 

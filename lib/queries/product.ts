@@ -59,6 +59,23 @@ export async function getFeaturedProducts(take = 4): Promise<ProductListItem[]> 
   });
 }
 
+/**
+ * Products currently on sale — those with a regular (compare) price genuinely
+ * above the charged price. Ordered by category so callers can group them.
+ * Prisma can't compare two columns in `where`, so we filter on `comparePrice`
+ * being set in SQL, then drop non-discounted rows in JS.
+ */
+export async function getOnSaleProducts(): Promise<ProductListItem[]> {
+  const rows = await prisma.product.findMany({
+    where: { isActive: true, isDeleted: false, comparePrice: { not: null } },
+    orderBy: [{ categoryId: "asc" }, { createdAt: "desc" }],
+    include: listInclude,
+  });
+  return rows.filter(
+    (p) => p.comparePrice != null && p.comparePrice.greaterThan(p.price),
+  );
+}
+
 export async function getProductBySlug(slug: string) {
   return prisma.product.findFirst({
     where: { slug, isActive: true, isDeleted: false },

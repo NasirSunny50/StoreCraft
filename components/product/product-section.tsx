@@ -10,7 +10,8 @@ export function ProductSection({
   gridTestId,
 }: {
   title: string;
-  viewAllHref: string;
+  /** Omit to hide the "View All" link (e.g. when the section already shows all). */
+  viewAllHref?: string;
   products: ProductCardData[];
   headingTestId?: string;
   gridTestId?: string;
@@ -27,12 +28,14 @@ export function ProductSection({
           <span className="h-4 w-1 rounded-sm bg-accent" />
           {title}
         </h2>
-        <Link
-          href={viewAllHref}
-          className="text-xs font-medium text-link hover:text-accent"
-        >
-          View All →
-        </Link>
+        {viewAllHref && (
+          <Link
+            href={viewAllHref}
+            className="text-xs font-medium text-link hover:text-accent"
+          >
+            View All →
+          </Link>
+        )}
       </div>
       <div
         data-testid={gridTestId}
