@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { validateSslcommerzPayment } from "@/lib/sslcommerz";
 import { markOrderPaid } from "@/lib/orders";
 import { notifyOrderPlaced, notifyOrderStatus } from "@/lib/notify-order";
+import { orderResultUrl } from "@/lib/order-result";
 import { siteUrl } from "@/lib/site-url";
 
 /**
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
 
     const v = await validateSslcommerzPayment(valId);
     if (!v.valid || v.tranId !== tranId) {
-      return NextResponse.redirect(`${base}/orders/${tranId}?payment=failed`, 303);
+      return NextResponse.redirect(await orderResultUrl(base, tranId, { payment: "failed" }), 303);
     }
 
     const res = await markOrderPaid(tranId, v.amount);
@@ -30,9 +31,9 @@ export async function POST(req: Request) {
       if (res.confirmed) await notifyOrderStatus(res.orderId, "CONFIRMED");
     }
     if (!res.ok) {
-      return NextResponse.redirect(`${base}/orders/${tranId}?payment=error`, 303);
+      return NextResponse.redirect(await orderResultUrl(base, tranId, { payment: "error" }), 303);
     }
-    return NextResponse.redirect(`${base}/orders/${tranId}?placed=1`, 303);
+    return NextResponse.redirect(await orderResultUrl(base, tranId, { placed: "1" }), 303);
   } catch (e) {
     console.error("[sslcommerz success]", e);
     return NextResponse.redirect(`${base}/orders?payment=error`, 303);

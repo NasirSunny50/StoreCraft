@@ -60,9 +60,7 @@ export type CreateGuestOrderInput = {
   email?: string;
   note?: string;
   couponCode?: string;
-  // Guests are Cash-on-Delivery only (online payment needs an account for the
-  // gateway return flow), but keep the field for forward compatibility.
-  paymentMethod?: "COD";
+  paymentMethod?: "COD" | "SSLCOMMERZ";
 };
 
 export async function createGuestOrder(
@@ -303,7 +301,7 @@ async function placeGuestOnce(
     address: { kind: "guest", data: input.address },
     note: input.note,
     couponCode: input.couponCode,
-    paymentMethod: "COD",
+    paymentMethod: input.paymentMethod ?? "COD",
   });
 }
 

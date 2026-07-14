@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { placeGuestOrderAction, type PlaceOrderState } from "@/lib/actions/order";
 import { previewCoupon } from "@/lib/actions/coupon";
 import { Button } from "@/components/ui/button";
@@ -19,18 +19,31 @@ function taka(n: number): string {
 const inputCls =
   "w-full rounded border border-hairline-strong px-3 py-2 text-sm outline-none focus:border-accent";
 
-/** Guest (no-account) checkout — inline shipping details, Cash on Delivery only. */
+/** Guest (no-account) checkout — inline shipping details, COD or online payment. */
 export function GuestCheckoutForm({
   summary,
   deliveryFees,
+  onlineEnabled = false,
 }: {
   summary: SummaryView;
   deliveryFees: DeliveryFees;
+  onlineEnabled?: boolean;
 }) {
   const [state, formAction, pending] = useActionState<PlaceOrderState, FormData>(
     placeGuestOrderAction,
     null,
   );
+
+  const [method, setMethod] = useState<"COD" | "SSLCOMMERZ">("COD");
+  const [redirecting, setRedirecting] = useState(false);
+
+  // Online payment: the action returns the gateway URL; send the browser there.
+  useEffect(() => {
+    if (state?.redirectUrl) {
+      setRedirecting(true);
+      window.location.href = state.redirectUrl;
+    }
+  }, [state]);
 
   // Delivery charge follows the selected city (Inside vs Outside Dhaka).
   const [city, setCity] = useState("");
@@ -105,13 +118,45 @@ export function GuestCheckoutForm({
           </section>
 
           <section className="rounded-lg border border-hairline bg-surface p-4">
-            <h2 className="mb-1 text-base font-bold text-ink">Payment Method</h2>
-            <div className="flex items-center gap-2 rounded-lg border border-accent bg-accent/5 p-3 text-sm">
-              <span className="font-medium text-ink">Cash on Delivery (COD)</span>
+            <h2 className="mb-3 text-base font-bold text-ink">Payment Method</h2>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 rounded-lg border border-hairline p-3 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent/5">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="COD"
+                  checked={method === "COD"}
+                  onChange={() => setMethod("COD")}
+                  className="accent-accent"
+                />
+                <span className="font-medium text-ink">Cash on Delivery (COD)</span>
+              </label>
+              {onlineEnabled && (
+                <label
+                  className="flex items-center gap-2 rounded-lg border border-hairline p-3 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent/5"
+                  data-testid="guest-pay-online"
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="SSLCOMMERZ"
+                    checked={method === "SSLCOMMERZ"}
+                    onChange={() => setMethod("SSLCOMMERZ")}
+                    className="accent-accent"
+                  />
+                  <span className="font-medium text-ink">
+                    Online Payment{" "}
+                    <span className="font-normal text-muted">
+                      — bKash · Nagad · Rocket · Upay · Visa · Mastercard · Internet Banking (SSLCommerz)
+                    </span>
+                  </span>
+                </label>
+              )}
             </div>
             <p className="mt-2 text-xs text-muted">
-              Pay in cash when your order arrives. Want online payment (bKash, cards)?{" "}
-              <span className="text-ink">Sign in</span> to use it.
+              {method === "COD"
+                ? "Pay in cash when your order arrives."
+                : "You'll be redirected to SSLCommerz to pay securely, then back to your order tracking page."}
             </p>
           </section>
 
@@ -212,11 +257,17 @@ export function GuestCheckoutForm({
             form={FORM_ID}
             variant="accent"
             size="lg"
-            loading={pending}
+            loading={pending || redirecting}
             data-testid="guest-place-order"
             className="w-full rounded-full"
           >
-            {pending ? "Placing order…" : "Confirm & Place Order"}
+            {pending || redirecting
+              ? method === "SSLCOMMERZ"
+                ? "Redirecting to payment…"
+                : "Placing order…"
+              : method === "SSLCOMMERZ"
+                ? "Proceed to Payment"
+                : "Confirm & Place Order"}
           </Button>
         </div>
       </aside>
@@ -252,7 +303,7 @@ function SelectField({
   return (
     <div className={className}>
       <label htmlFor={`guest-${name}`} className="mb-1 block text-xs font-medium text-muted">
-        {label}
+        {label} {required && <span className="text-accent">*</span>}
       </label>
       <select
         id={`guest-${name}`}
@@ -302,7 +353,7 @@ function Field({
   return (
     <div className={className}>
       <label htmlFor={`guest-${name}`} className="mb-1 block text-xs font-medium text-muted">
-        {label}
+        {label} {required && <span className="text-accent">*</span>}
       </label>
       <input
         id={`guest-${name}`}

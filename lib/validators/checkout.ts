@@ -22,8 +22,8 @@ export type PlaceOrderInput = z.infer<typeof placeOrderSchema>;
 
 /**
  * Guest checkout: inline shipping details (reusing the address rules) plus an
- * optional email for order notifications, a note, and an optional coupon.
- * Guests are Cash-on-Delivery only, so no payment-method field.
+ * optional email for order notifications, a note, an optional coupon, and the
+ * payment method (Cash on Delivery or online via SSLCommerz).
  */
 export const guestCheckoutSchema = addressSchema
   .omit({ isDefault: true })
@@ -31,6 +31,7 @@ export const guestCheckoutSchema = addressSchema
     // Guests pick city + area from dropdowns — both are required.
     city: z.string().trim().min(1, "Please select a city"),
     area: z.string().trim().min(1, "Please select an area").max(80),
+    paymentMethod: z.enum(["COD", "SSLCOMMERZ"]).default("COD"),
     email: z
       .string()
       .trim()

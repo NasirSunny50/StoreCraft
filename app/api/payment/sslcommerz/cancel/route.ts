@@ -6,6 +6,7 @@ import {
 } from "@/lib/sslcommerz";
 import { failOrderPaymentByNumber, markOrderPaid } from "@/lib/orders";
 import { notifyOrderPlaced, notifyOrderStatus } from "@/lib/notify-order";
+import { orderResultUrl } from "@/lib/order-result";
 import { siteUrl } from "@/lib/site-url";
 
 /**
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
           await notifyOrderPlaced(res.orderId);
           if (res.confirmed) await notifyOrderStatus(res.orderId, "CONFIRMED");
         }
-        return NextResponse.redirect(`${base}/orders/${tranId}?placed=1`, 303);
+        return NextResponse.redirect(await orderResultUrl(base, tranId, { placed: "1" }), 303);
       }
       if (verifySslcommerzSignature(fields, sslcommerzStorePassword())) {
         await failOrderPaymentByNumber(tranId);
@@ -40,5 +41,5 @@ export async function POST(req: Request) {
   } catch (e) {
     console.error("[sslcommerz cancel]", e);
   }
-  return NextResponse.redirect(`${base}/orders/${tranId}?payment=cancelled`, 303);
+  return NextResponse.redirect(await orderResultUrl(base, tranId, { payment: "cancelled" }), 303);
 }

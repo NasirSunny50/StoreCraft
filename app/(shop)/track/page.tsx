@@ -12,12 +12,15 @@ export const metadata = { title: "Track Order" };
 export default async function TrackOrderPage({
   searchParams,
 }: {
-  searchParams: Promise<{ order?: string; phone?: string; placed?: string }>;
+  searchParams: Promise<{ order?: string; phone?: string; placed?: string; payment?: string }>;
 }) {
-  const { order: orderNumber, phone, placed } = await searchParams;
+  const { order: orderNumber, phone, placed, payment } = await searchParams;
   const searched = Boolean(orderNumber && phone);
   const order = searched ? await getOrderForTracking(orderNumber!, phone!) : null;
+  const paid = order?.paymentStatus === "PAID";
   const justPlaced = placed === "1" && Boolean(order);
+  const paymentIssue =
+    !paid && (payment === "failed" || payment === "cancelled" || payment === "error");
 
   const inputCls =
     "w-full rounded-lg border border-hairline-strong px-3 py-2 text-sm focus:border-accent focus:outline-none";
@@ -40,9 +43,20 @@ export default async function TrackOrderPage({
         >
           <CheckCircle2 className="h-5 w-5 shrink-0" />
           <span>
-            Thank you! Your order <strong>{order!.orderNumber}</strong> has been placed.
-            Save this order number to track it anytime.
+            Thank you! Your order <strong>{order!.orderNumber}</strong> has been placed
+            {paid ? " and paid" : ""}. Save this order number to track it anytime.
           </span>
+        </div>
+      )}
+
+      {paymentIssue && (
+        <div
+          data-testid="track-payment-notice"
+          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+        >
+          {payment === "error"
+            ? "We couldn't confirm your payment. If money was deducted, it will be refunded — please contact support."
+            : `Payment ${payment === "cancelled" ? "was cancelled" : "failed"}, so this order was not completed. Please place your order again.`}
         </div>
       )}
 

@@ -88,8 +88,9 @@ export async function placeOrderAction(
 }
 
 /**
- * Guest checkout (no account) — Cash on Delivery only. Contact + shipping come
- * from the form; the order is tracked afterwards via /track (order no + phone).
+ * Guest checkout (no account) — Cash on Delivery or online payment (SSLCommerz).
+ * Contact + shipping come from the form; the order is tracked afterwards via
+ * /track (order number + phone), where the payment callbacks also send guests.
  */
 export async function placeGuestOrderAction(
   _prev: PlaceOrderState,
@@ -109,6 +110,7 @@ export async function placeGuestOrderAction(
     city: formData.get("city"),
     area: formData.get("area"),
     postcode: formData.get("postcode"),
+    paymentMethod: formData.get("paymentMethod") ?? "COD",
     email: formData.get("email"),
     note: formData.get("note"),
     couponCode: formData.get("couponCode"),
@@ -117,25 +119,42 @@ export async function placeGuestOrderAction(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
+  const online = parsed.data.paymentMethod === "SSLCOMMERZ";
+  if (online && !sslcommerzConfigured()) {
+    return { error: "Online payment is unavailable right now. Please choose Cash on Delivery." };
+  }
+
   const sessionId = await getGuestCartSessionId();
   if (!sessionId) {
     return { error: "Your cart session has expired. Please add items again." };
   }
 
-  const { email, note, couponCode, ...address } = parsed.data;
+  const { email, note, couponCode, paymentMethod, ...address } = parsed.data;
 
   let order: { id: string; orderNumber: string };
   try {
-    order = await createGuestOrder({ sessionId, address, email, note, couponCode });
+    order = await createGuestOrder({ sessionId, address, email, note, couponCode, paymentMethod });
   } catch (e) {
     if (e instanceof CheckoutError) return { error: e.message };
     throw e;
   }
 
+  // Online payment: open a gateway session and hand the URL to the client. The
+  // confirmation email is sent only after the payment callback validates it.
+  if (online) {
+    try {
+      const { gatewayUrl } = await startSslcommerzPayment(order.id);
+      return { redirectUrl: gatewayUrl };
+    } catch {
+      await failOrderPaymentByNumber(order.orderNumber);
+      return { error: "Could not start online payment. Please try again or choose Cash on Delivery." };
+    }
+  }
+
+  // COD: confirm immediately and send the guest to tracking.
   await notifyOrderPlaced(order.id); // never throws
   revalidatePath("/cart");
   revalidatePath("/", "layout"); // cart badge
-  // Guests have no order history page; send them to tracking (pre-filled).
   redirect(
     `/track?order=${encodeURIComponent(order.orderNumber)}&phone=${encodeURIComponent(address.phone)}&placed=1`,
   );
