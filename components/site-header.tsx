@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search, ShoppingCart, Heart, Phone, ChevronDown } from "lucide-react";
+import { ShoppingCart, Heart, Phone, ChevronDown } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { hasRole } from "@/lib/utils/roles";
 import { getCart, cartCount } from "@/lib/cart";
@@ -9,6 +9,7 @@ import { getBranding } from "@/lib/branding";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { MobileMenu } from "@/components/mobile-menu";
 import { BrandLogo } from "@/components/brand-logo";
+import { SearchAutocomplete } from "@/components/search-autocomplete";
 
 export async function SiteHeader() {
   const [session, cart, wishlist, categories, branding] = await Promise.all([
@@ -94,35 +95,7 @@ export async function SiteHeader() {
             />
           </Link>
 
-          <form action="/products" className="hidden h-10 flex-1 items-stretch overflow-hidden rounded border border-hairline-strong lg:flex">
-            <select
-              name="category"
-              aria-label="Category"
-              className="border-r border-hairline bg-surface-2 px-3 text-xs text-ink"
-            >
-              <option value="">All Categories</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.slug}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <input
-              name="q"
-              type="search"
-              placeholder="Search for products (e.g. MacBook, headphones)…"
-              data-testid="header-search"
-              className="min-w-0 flex-1 px-3 text-sm outline-none"
-            />
-            <button
-              type="submit"
-              aria-label="Search"
-              className="flex items-center gap-1.5 bg-accent px-5 text-sm font-medium text-white hover:bg-accent-strong"
-            >
-              <Search className="h-4 w-4" />
-              <span className="hidden sm:inline">Search</span>
-            </button>
-          </form>
+          <SearchAutocomplete categories={categories} />
 
           <div className="ml-auto flex items-center gap-5">
             {user && (
@@ -153,18 +126,7 @@ export async function SiteHeader() {
           </div>
 
           {/* Mobile full-width search row */}
-          <form action="/products" className="mt-3 flex h-10 items-stretch overflow-hidden rounded border border-hairline-strong lg:hidden">
-            <input
-              name="q"
-              type="search"
-              placeholder="Search products…"
-              aria-label="Search products"
-              className="min-w-0 flex-1 px-3 text-sm outline-none"
-            />
-            <button type="submit" aria-label="Search" className="flex items-center bg-accent px-4 text-white hover:bg-accent-strong">
-              <Search className="h-4 w-4" />
-            </button>
-          </form>
+          <SearchAutocomplete variant="mobile" />
         </div>
       </div>
 
