@@ -19,6 +19,7 @@ export type ProductFormInitial = {
   description: string;
   price: string; // amount charged
   comparePrice: string; // regular (struck) price when on sale
+  costPrice: string; // buying/cost price
   stock: number;
   lowStockAt: number;
   categoryId: string;
@@ -58,6 +59,7 @@ export function ProductForm({
     description: initial?.description ?? "",
     regularPrice: (onSale ? initial?.comparePrice : initial?.price) ?? "",
     salePrice: onSale ? (initial?.price ?? "") : "",
+    costPrice: initial?.costPrice ?? "",
     stock: initial?.stock?.toString() ?? "0",
     lowStockAt: initial?.lowStockAt?.toString() ?? "5",
     categoryId: initial?.categoryId ?? categories[0]?.id ?? "",
@@ -126,6 +128,7 @@ export function ProductForm({
       description: form.description,
       price: sale ?? regular, // amount charged
       comparePrice: sale !== undefined ? regular : undefined, // struck regular price
+      costPrice: form.costPrice.trim() ? Number(form.costPrice) : undefined,
       stock: Number(form.stock),
       lowStockAt: Number(form.lowStockAt),
       categoryId: form.categoryId,
@@ -203,6 +206,9 @@ export function ProductForm({
         </Field>
         <Field label="Sale Price (৳, optional)">
           <input data-testid="pf-sale-price" type="number" min={0} step="0.01" className={inputCls} value={form.salePrice} onChange={(e) => set("salePrice", e.target.value)} placeholder="leave blank if not on sale" />
+        </Field>
+        <Field label="Cost / Buying Price (৳, optional)" error={fe("costPrice")}>
+          <input data-testid="pf-cost-price" type="number" min={0} step="0.01" className={inputCls} value={form.costPrice} onChange={(e) => set("costPrice", e.target.value)} placeholder="for profit reports" />
         </Field>
         <Field label="Stock" error={fe("stock")}>
           <input data-testid="pf-stock" type="number" min={0} className={inputCls} value={form.stock} onChange={(e) => set("stock", e.target.value)} />

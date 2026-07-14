@@ -35,6 +35,7 @@ export default async function EditProductPage({
           description: product.description,
           price: product.price.toString(),
           comparePrice: product.comparePrice?.toString() ?? "",
+          costPrice: product.costPrice?.toString() ?? "",
           stock: product.stock,
           lowStockAt: product.lowStockAt,
           categoryId: product.categoryId,

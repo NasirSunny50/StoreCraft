@@ -79,6 +79,17 @@ async function seedCatalog() {
   }
 
   // --- Products ---
+  // Realistic buying-cost per category (drives profit reports): thin margins on
+  // phones/laptops, fatter margins on audio/accessories.
+  const COST_FACTOR: Record<string, number> = {
+    Smartphones: 0.9,
+    Laptops: 0.88,
+    Audio: 0.65,
+    Accessories: 0.55,
+  };
+  const costOf = (price: number, category: string) =>
+    Math.round(price * (COST_FACTOR[category] ?? 0.75));
+
   const products = [
     {
       name: "MacBook Air M3 13-inch",
@@ -154,6 +165,7 @@ async function seedCatalog() {
       update: {
         price: p.price,
         comparePrice: p.comparePrice ?? null,
+        costPrice: costOf(p.price, p.category),
         stock: p.stock,
         isFeatured: p.isFeatured ?? false,
         isActive: true, // keep seed products live even if a test toggled them
@@ -167,6 +179,7 @@ async function seedCatalog() {
         description: p.description,
         price: p.price,
         comparePrice: p.comparePrice ?? null,
+        costPrice: costOf(p.price, p.category),
         stock: p.stock,
         isFeatured: p.isFeatured ?? false,
         warranty: p.warranty ?? null,

@@ -1,10 +1,17 @@
 import { auth } from "@/lib/auth";
 import { getSalesReport } from "@/lib/queries/admin-dashboard";
+import {
+  getSalesSummary,
+  getProductSalesReport,
+  getCategorySalesReport,
+} from "@/lib/queries/admin-reports";
 
 function cell(v: string): string {
   const s = String(v ?? "");
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
+
+const pct = (r: number) => `${(r * 100).toFixed(1)}%`;
 
 export async function GET(req: Request) {
   // Route handlers aren't covered by the (admin) layout — guard explicitly.
@@ -14,37 +21,78 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url);
+  const report = url.searchParams.get("report") ?? "orders";
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
-  const report = await getSalesReport(
-    from ? new Date(from) : undefined,
-    to ? new Date(`${to}T23:59:59`) : undefined,
-  );
+  const fromDate = from ? new Date(from) : undefined;
+  const toDate = to ? new Date(`${to}T23:59:59`) : undefined;
 
-  const rows: string[][] = [
-    ["Order Number", "Date", "Customer", "Email", "Status", "Subtotal", "Discount", "Shipping", "Total"],
-  ];
-  for (const o of report.orders) {
-    rows.push([
-      o.orderNumber,
-      o.createdAt.toISOString().slice(0, 10),
-      o.user?.name ?? `${o.address.fullName} (Guest)`,
-      o.user?.email ?? o.guestEmail ?? "",
-      o.status,
-      o.subtotal.toString(),
-      o.discount.toString(),
-      o.shippingFee.toString(),
-      o.total.toString(),
-    ]);
+  let rows: string[][];
+  let filename: string;
+
+  if (report === "summary") {
+    const s = await getSalesSummary(fromDate, toDate);
+    filename = "sales-summary";
+    rows = [
+      ["Metric", "Value"],
+      ["Total Orders", String(s.totalOrders)],
+      ["Total Sales", s.totalSales.toString()],
+      ["Gross Revenue", s.grossRevenue.toString()],
+      ["Cost of Goods Sold (COGS)", s.totalCost.toString()],
+      ["Gross Profit", s.grossProfit.toString()],
+      ["Profit Margin", pct(s.profitMargin)],
+      ["Net Revenue", s.netRevenue.toString()],
+      ["Average Order Value", s.avgOrderValue.toFixed(2)],
+      ["Items Sold", String(s.itemsSold)],
+      ["Total Discount", s.totalDiscount.toString()],
+      ["Shipping Collected", s.totalShipping.toString()],
+      ["Paid Orders", String(s.paidOrders)],
+      ["Paid Sales", s.paidSales.toString()],
+      ["COD Orders", String(s.codOrders)],
+      ["Online Orders", String(s.onlineOrders)],
+      ["Cancelled Orders", String(s.cancelledOrders)],
+      ["Cancellation Rate", pct(s.cancellationRate)],
+    ];
+  } else if (report === "products") {
+    const data = await getProductSalesReport(fromDate, toDate);
+    filename = "product-sales";
+    rows = [["Product", "Category", "Qty Sold", "Revenue", "Profit", "Margin", "Cancellation Rate"]];
+    for (const r of data) {
+      rows.push([r.name, r.category, String(r.soldQty), r.revenue.toString(), r.profit.toString(), pct(r.margin), pct(r.cancellationRate)]);
+    }
+  } else if (report === "categories") {
+    const data = await getCategorySalesReport(fromDate, toDate);
+    filename = "category-sales";
+    rows = [["Category", "Orders", "Items Sold", "Revenue", "Profit", "Margin"]];
+    for (const r of data) {
+      rows.push([r.category, String(r.orders), String(r.itemsSold), r.revenue.toString(), r.profit.toString(), pct(r.margin)]);
+    }
+  } else {
+    const report2 = await getSalesReport(fromDate, toDate);
+    filename = "sales-report";
+    rows = [["Order Number", "Date", "Customer", "Email", "Status", "Subtotal", "Discount", "Shipping", "Total"]];
+    for (const o of report2.orders) {
+      rows.push([
+        o.orderNumber,
+        o.createdAt.toISOString().slice(0, 10),
+        o.user?.name ?? `${o.address.fullName} (Guest)`,
+        o.user?.email ?? o.guestEmail ?? "",
+        o.status,
+        o.subtotal.toString(),
+        o.discount.toString(),
+        o.shippingFee.toString(),
+        o.total.toString(),
+      ]);
+    }
+    rows.push([]);
+    rows.push(["", "", "", "", "", "", "", "TOTAL", report2.total.toString()]);
   }
-  rows.push([]);
-  rows.push(["", "", "", "", "", "", "", "TOTAL", report.total.toString()]);
 
   const csv = rows.map((r) => r.map(cell).join(",")).join("\r\n");
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="sales-report.csv"',
+      "Content-Disposition": `attachment; filename="${filename}.csv"`,
     },
   });
 }

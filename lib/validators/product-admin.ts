@@ -29,6 +29,11 @@ export const productFormSchema = z.object({
     emptyToUndef,
     z.coerce.number().positive("Compare price must be greater than 0").optional(),
   ),
+  // Buying/cost price — used for profit reports. Optional; defaults to 0.
+  costPrice: z.preprocess(
+    emptyToUndef,
+    z.coerce.number().min(0, "Cost price cannot be negative").optional(),
+  ),
   stock: z.coerce.number().int("Stock must be a whole number").min(0),
   lowStockAt: z.preprocess(
     emptyToUndef,
