@@ -1,10 +1,17 @@
+import type { OrderStatus } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { getSalesReport } from "@/lib/queries/admin-dashboard";
 import {
   getSalesSummary,
   getProductSalesReport,
   getCategorySalesReport,
+  type ProductSort,
+  type CategorySort,
 } from "@/lib/queries/admin-reports";
+
+const PRODUCT_SORTS = ["revenue", "profit", "margin", "qty"] as const;
+const CATEGORY_SORTS = ["revenue", "profit", "margin"] as const;
+const ORDER_STATUSES = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"] as const;
 
 function cell(v: string): string {
   const s = String(v ?? "");
@@ -26,6 +33,14 @@ export async function GET(req: Request) {
   const to = url.searchParams.get("to");
   const fromDate = from ? new Date(from) : undefined;
   const toDate = to ? new Date(`${to}T23:59:59`) : undefined;
+
+  const catParam = url.searchParams.get("cat") ?? undefined;
+  const sortParam = url.searchParams.get("sort") ?? undefined;
+  const statusParam = url.searchParams.get("status") ?? undefined;
+  const has = (arr: readonly string[], v?: string) => !!v && arr.includes(v);
+  const productSort = has(PRODUCT_SORTS, sortParam) ? (sortParam as ProductSort) : undefined;
+  const categorySort = has(CATEGORY_SORTS, sortParam) ? (sortParam as CategorySort) : undefined;
+  const status = has(ORDER_STATUSES, statusParam) ? (statusParam as OrderStatus) : undefined;
 
   let rows: string[][];
   let filename: string;
@@ -54,21 +69,21 @@ export async function GET(req: Request) {
       ["Cancellation Rate", pct(s.cancellationRate)],
     ];
   } else if (report === "products") {
-    const data = await getProductSalesReport(fromDate, toDate);
+    const data = await getProductSalesReport(fromDate, toDate, { categorySlug: catParam, sort: productSort });
     filename = "product-sales";
     rows = [["Product", "Category", "Qty Sold", "Revenue", "Profit", "Margin", "Cancellation Rate"]];
     for (const r of data) {
       rows.push([r.name, r.category, String(r.soldQty), r.revenue.toString(), r.profit.toString(), pct(r.margin), pct(r.cancellationRate)]);
     }
   } else if (report === "categories") {
-    const data = await getCategorySalesReport(fromDate, toDate);
+    const data = await getCategorySalesReport(fromDate, toDate, { sort: categorySort });
     filename = "category-sales";
     rows = [["Category", "Orders", "Items Sold", "Revenue", "Profit", "Margin"]];
     for (const r of data) {
       rows.push([r.category, String(r.orders), String(r.itemsSold), r.revenue.toString(), r.profit.toString(), pct(r.margin)]);
     }
   } else {
-    const report2 = await getSalesReport(fromDate, toDate);
+    const report2 = await getSalesReport(fromDate, toDate, status);
     filename = "sales-report";
     rows = [["Order Number", "Date", "Customer", "Email", "Status", "Subtotal", "Discount", "Shipping", "Total"]];
     for (const o of report2.orders) {

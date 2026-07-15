@@ -1,3 +1,4 @@
+import type { OrderStatus } from "@prisma/client";
 import { requireAdmin } from "@/lib/auth-guard";
 import { getBranding } from "@/lib/branding";
 import { getSalesReport } from "@/lib/queries/admin-dashboard";
@@ -5,6 +6,8 @@ import {
   getSalesSummary,
   getProductSalesReport,
   getCategorySalesReport,
+  type ProductSort,
+  type CategorySort,
 } from "@/lib/queries/admin-reports";
 import { formatBDT } from "@/lib/utils/money";
 import { PrintControls } from "@/components/admin/print-controls";
@@ -20,16 +23,25 @@ const TITLES: Record<string, string> = {
 
 const pct = (r: number) => `${(r * 100).toFixed(1)}%`;
 
+const PRODUCT_SORTS = ["revenue", "profit", "margin", "qty"] as const;
+const CATEGORY_SORTS = ["revenue", "profit", "margin"] as const;
+const ORDER_STATUSES = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"] as const;
+
 export default async function ReportsPdfPage({
   searchParams,
 }: {
-  searchParams: Promise<{ report?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ report?: string; from?: string; to?: string; cat?: string; sort?: string; status?: string }>;
 }) {
   await requireAdmin();
   const sp = await searchParams;
   const report = TITLES[sp.report ?? ""] ? sp.report! : "summary";
   const from = sp.from ? new Date(sp.from) : undefined;
   const to = sp.to ? new Date(`${sp.to}T23:59:59`) : undefined;
+  const has = (arr: readonly string[], v?: string) => !!v && arr.includes(v);
+  const cat = sp.cat || undefined;
+  const productSort = has(PRODUCT_SORTS, sp.sort) ? (sp.sort as ProductSort) : undefined;
+  const categorySort = has(CATEGORY_SORTS, sp.sort) ? (sp.sort as CategorySort) : undefined;
+  const status = has(ORDER_STATUSES, sp.status) ? (sp.status as OrderStatus) : undefined;
   const b = await getBranding();
 
   const rangeLabel = sp.from || sp.to ? `${sp.from ?? "Beginning"} — ${sp.to ?? "Today"}` : "All time";
@@ -63,9 +75,9 @@ export default async function ReportsPdfPage({
         {/* ---------- Body ---------- */}
         <main className="space-y-5 px-6 py-6 sm:px-8">
           {report === "summary" && <SummaryPdf from={from} to={to} />}
-          {report === "products" && <ProductsPdf from={from} to={to} />}
-          {report === "categories" && <CategoriesPdf from={from} to={to} />}
-          {report === "orders" && <OrdersPdf from={from} to={to} />}
+          {report === "products" && <ProductsPdf from={from} to={to} categorySlug={cat} sort={productSort} />}
+          {report === "categories" && <CategoriesPdf from={from} to={to} sort={categorySort} />}
+          {report === "orders" && <OrdersPdf from={from} to={to} status={status} />}
         </main>
 
         {/* ---------- Footer ---------- */}
@@ -142,8 +154,18 @@ async function SummaryPdf({ from, to }: { from?: Date; to?: Date }) {
 }
 
 // ---------- 2. Products ----------
-async function ProductsPdf({ from, to }: { from?: Date; to?: Date }) {
-  const rows = await getProductSalesReport(from, to);
+async function ProductsPdf({
+  from,
+  to,
+  categorySlug,
+  sort,
+}: {
+  from?: Date;
+  to?: Date;
+  categorySlug?: string;
+  sort?: ProductSort;
+}) {
+  const rows = await getProductSalesReport(from, to, { categorySlug, sort });
   return (
     <>
       <Scroll>
@@ -183,8 +205,8 @@ async function ProductsPdf({ from, to }: { from?: Date; to?: Date }) {
 }
 
 // ---------- 3. Categories ----------
-async function CategoriesPdf({ from, to }: { from?: Date; to?: Date }) {
-  const rows = await getCategorySalesReport(from, to);
+async function CategoriesPdf({ from, to, sort }: { from?: Date; to?: Date; sort?: CategorySort }) {
+  const rows = await getCategorySalesReport(from, to, { sort });
   return (
     <Scroll>
       <table className="w-full min-w-[480px] border-collapse">
@@ -217,8 +239,8 @@ async function CategoriesPdf({ from, to }: { from?: Date; to?: Date }) {
 }
 
 // ---------- 4. Orders ----------
-async function OrdersPdf({ from, to }: { from?: Date; to?: Date }) {
-  const { orders, total } = await getSalesReport(from, to);
+async function OrdersPdf({ from, to, status }: { from?: Date; to?: Date; status?: OrderStatus }) {
+  const { orders, total } = await getSalesReport(from, to, status);
   return (
     <Scroll>
       <table className="w-full min-w-[560px] border-collapse">

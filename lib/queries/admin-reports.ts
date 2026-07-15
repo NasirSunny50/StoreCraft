@@ -205,7 +205,11 @@ export type CategorySalesRow = {
   margin: number; // profit / revenue (0..1)
 };
 
-export async function getCategorySalesReport(from?: Date, to?: Date): Promise<CategorySalesRow[]> {
+export async function getCategorySalesReport(
+  from?: Date,
+  to?: Date,
+  opts: { sort?: CategorySort } = {},
+): Promise<CategorySalesRow[]> {
   const items = await fetchSalesItems(from, to);
   const map = new Map<
     string,
@@ -237,5 +241,11 @@ export async function getCategorySalesReport(from?: Date, to?: Date): Promise<Ca
         margin: g.revenue.greaterThan(0) ? profit.div(g.revenue).toNumber() : 0,
       };
     })
-    .sort((a, b) => b.revenue.comparedTo(a.revenue));
+    .sort((a, b) => {
+      switch (opts.sort) {
+        case "profit": return b.profit.comparedTo(a.profit);
+        case "margin": return b.margin - a.margin;
+        default: return b.revenue.comparedTo(a.revenue);
+      }
+    });
 }

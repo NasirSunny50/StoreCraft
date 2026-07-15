@@ -55,14 +55,15 @@ export async function getDashboardStats(sinceDays: number | null) {
   };
 }
 
-export async function getSalesReport(from?: Date, to?: Date) {
+export async function getSalesReport(from?: Date, to?: Date, status?: OrderStatus) {
   const createdAt: Prisma.DateTimeFilter = {};
   if (from) createdAt.gte = from;
   if (to) createdAt.lte = to;
 
   const orders = await prisma.order.findMany({
     where: {
-      status: { not: "CANCELLED" },
+      // A specific status filter overrides the default "everything but cancelled".
+      status: status ?? { not: "CANCELLED" },
       ...(from || to ? { createdAt } : {}),
     },
     orderBy: { createdAt: "desc" },

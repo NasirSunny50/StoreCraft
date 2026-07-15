@@ -2,13 +2,18 @@ import Link from "next/link";
 import { Download, FileText } from "lucide-react";
 import { requireAdmin } from "@/lib/auth-guard";
 import { DatePicker } from "@/components/admin/date-picker";
+import { FilterSelect } from "@/components/admin/filter-select";
 import { getSalesReport } from "@/lib/queries/admin-dashboard";
 import {
   getSalesSummary,
   getProductSalesReport,
   getCategorySalesReport,
+  type ProductSort,
+  type CategorySort,
 } from "@/lib/queries/admin-reports";
+import { getCategories } from "@/lib/queries/product";
 import { getInventory } from "@/lib/queries/admin-misc";
+import type { OrderStatus } from "@prisma/client";
 import { formatBDT } from "@/lib/utils/money";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { OrderStatusBadge } from "@/components/order/order-status-badge";
@@ -27,12 +32,36 @@ const TABS = [
 
 type ReportKey = (typeof TABS)[number]["key"];
 
+const PRODUCT_SORTS = [
+  { value: "revenue", label: "Revenue" },
+  { value: "profit", label: "Profit" },
+  { value: "margin", label: "Margin" },
+  { value: "qty", label: "Qty Sold" },
+] as const;
+
+const CATEGORY_SORTS = [
+  { value: "revenue", label: "Revenue" },
+  { value: "profit", label: "Profit" },
+  { value: "margin", label: "Margin" },
+] as const;
+
+const ORDER_STATUSES = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"] as const;
+
 const pct = (r: number) => `${(r * 100).toFixed(1)}%`;
 
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; page?: string; perPage?: string; report?: string }>;
+  searchParams: Promise<{
+    from?: string;
+    to?: string;
+    page?: string;
+    perPage?: string;
+    report?: string;
+    cat?: string;
+    sort?: string;
+    status?: string;
+  }>;
 }) {
   await requireAdmin();
   const sp = await searchParams;
@@ -41,12 +70,39 @@ export default async function ReportsPage({
   const fromDate = from ? new Date(from) : undefined;
   const toDate = to ? new Date(`${to}T23:59:59`) : undefined;
 
-  const qs = (extra: Record<string, string>) => {
+  // Report-specific filters (validated against the active report so a stale
+  // param from another tab is ignored).
+  const cat = report === "products" ? sp.cat : undefined;
+  const productSort =
+    report === "products" && PRODUCT_SORTS.some((s) => s.value === sp.sort)
+      ? (sp.sort as ProductSort)
+      : undefined;
+  const categorySort =
+    report === "categories" && CATEGORY_SORTS.some((s) => s.value === sp.sort)
+      ? (sp.sort as CategorySort)
+      : undefined;
+  const status =
+    report === "orders" && ORDER_STATUSES.some((s) => s === sp.status)
+      ? (sp.status as OrderStatus)
+      : undefined;
+
+  const categories = report === "products" ? await getCategories() : [];
+
+  // from/to persist across tabs; report-specific params only ride along when set.
+  const qs = (extra: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
     if (from) p.set("from", from);
     if (to) p.set("to", to);
     Object.entries(extra).forEach(([k, v]) => v && p.set(k, v));
     return p.toString();
+  };
+
+  // Params to carry into export links for the active report.
+  const exportParams: Record<string, string | undefined> = {
+    report,
+    cat,
+    sort: productSort ?? categorySort,
+    status,
   };
 
   return (
@@ -60,17 +116,54 @@ export default async function ReportsPage({
           <DatePicker name="from" label="From" defaultValue={from ?? ""} />
           <DatePicker name="to" label="To" defaultValue={to ?? ""} />
         </div>
+
+        {/* Product-wise: category + sort */}
+        {report === "products" && (
+          <>
+            <FilterSelect name="cat" label="Category" defaultValue={cat ?? ""} testId="filter-cat">
+              <option value="">All categories</option>
+              {categories.map((c) => (
+                <option key={c.slug} value={c.slug}>{c.name}</option>
+              ))}
+            </FilterSelect>
+            <FilterSelect name="sort" label="Sort by" defaultValue={productSort ?? "revenue"} testId="filter-sort">
+              {PRODUCT_SORTS.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </FilterSelect>
+          </>
+        )}
+
+        {/* Category-wise: sort */}
+        {report === "categories" && (
+          <FilterSelect name="sort" label="Sort by" defaultValue={categorySort ?? "revenue"} testId="filter-sort">
+            {CATEGORY_SORTS.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </FilterSelect>
+        )}
+
+        {/* Orders: status */}
+        {report === "orders" && (
+          <FilterSelect name="status" label="Status" defaultValue={status ?? ""} testId="filter-status">
+            <option value="">All statuses</option>
+            {ORDER_STATUSES.map((s) => (
+              <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>
+            ))}
+          </FilterSelect>
+        )}
+
         <button className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong">Apply</button>
         <div className="flex flex-wrap gap-2 sm:ml-auto">
           <a
-            href={`/api/admin/reports/sales.csv?${qs({ report })}`}
+            href={`/api/admin/reports/sales.csv?${qs(exportParams)}`}
             data-testid="export-csv"
             className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-hairline-strong px-3 py-2 font-medium text-ink hover:border-accent hover:text-accent sm:flex-none"
           >
             <Download className="h-4 w-4" /> Export CSV
           </a>
           <a
-            href={`/reports-pdf?${qs({ report })}`}
+            href={`/reports-pdf?${qs(exportParams)}`}
             target="_blank"
             rel="noopener noreferrer"
             data-testid="export-pdf"
@@ -99,9 +192,9 @@ export default async function ReportsPage({
       </div>
 
       {report === "summary" && <SummaryReport from={fromDate} to={toDate} />}
-      {report === "products" && <ProductReport from={fromDate} to={toDate} />}
-      {report === "categories" && <CategoryReport from={fromDate} to={toDate} />}
-      {report === "orders" && <OrdersReport from={fromDate} to={toDate} sp={sp} />}
+      {report === "products" && <ProductReport from={fromDate} to={toDate} categorySlug={cat} sort={productSort} />}
+      {report === "categories" && <CategoryReport from={fromDate} to={toDate} sort={categorySort} />}
+      {report === "orders" && <OrdersReport from={fromDate} to={toDate} status={status} sp={sp} />}
     </div>
   );
 }
@@ -169,8 +262,18 @@ async function SummaryReport({ from, to }: { from?: Date; to?: Date }) {
 }
 
 // ---------- 2. Product-wise ----------
-async function ProductReport({ from, to }: { from?: Date; to?: Date }) {
-  const rows = await getProductSalesReport(from, to);
+async function ProductReport({
+  from,
+  to,
+  categorySlug,
+  sort,
+}: {
+  from?: Date;
+  to?: Date;
+  categorySlug?: string;
+  sort?: ProductSort;
+}) {
+  const rows = await getProductSalesReport(from, to, { categorySlug, sort });
   return (
     <ReportTable
       testId="report-products"
@@ -192,8 +295,8 @@ async function ProductReport({ from, to }: { from?: Date; to?: Date }) {
 }
 
 // ---------- 3. Category-wise ----------
-async function CategoryReport({ from, to }: { from?: Date; to?: Date }) {
-  const rows = await getCategorySalesReport(from, to);
+async function CategoryReport({ from, to, sort }: { from?: Date; to?: Date; sort?: CategorySort }) {
+  const rows = await getCategorySalesReport(from, to, { sort });
   return (
     <ReportTable
       testId="report-categories"
@@ -217,14 +320,16 @@ async function CategoryReport({ from, to }: { from?: Date; to?: Date }) {
 async function OrdersReport({
   from,
   to,
+  status,
   sp,
 }: {
   from?: Date;
   to?: Date;
+  status?: OrderStatus;
   sp: { page?: string; perPage?: string };
 }) {
   const { page, perPage, skip, take } = parsePageParams(sp);
-  const [report, lowStock] = await Promise.all([getSalesReport(from, to), getInventory(true)]);
+  const [report, lowStock] = await Promise.all([getSalesReport(from, to, status), getInventory(true)]);
   const pagedOrders = report.orders.slice(skip, skip + take);
 
   return (
