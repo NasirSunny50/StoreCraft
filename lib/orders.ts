@@ -89,7 +89,7 @@ type LiveCartItem = {
   productId: string;
   quantity: number;
   color: string;
-  product: { name: string; price: Prisma.Decimal };
+  product: { name: string; price: Prisma.Decimal; costPrice: Prisma.Decimal };
 };
 
 /** Delivery address for an order — an existing saved row, or guest data to create. */
@@ -214,6 +214,7 @@ async function finalizeOrder(params: {
             productId: i.productId,
             name: i.product.name, // snapshot
             price: i.product.price, // snapshot
+            cost: i.product.costPrice, // snapshot of unit cost for accurate profit
             quantity: i.quantity,
             color: i.color, // snapshot of chosen colour
           })),

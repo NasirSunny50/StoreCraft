@@ -5,6 +5,7 @@ import { AdminPageHeader } from "@/components/admin/page-header";
 import { StockAdjust } from "@/components/admin/stock-adjust";
 import { AdminPagination } from "@/components/admin/admin-pagination";
 import { parsePageParams } from "@/lib/pagination";
+import { formatBDT } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
 
 export const metadata = { title: "Inventory — Admin" };
@@ -62,6 +63,7 @@ export default async function InventoryPage({
               <th className="px-3 py-2 font-medium">Product</th>
               <th className="px-3 py-2 font-medium">Category</th>
               <th className="px-3 py-2 font-medium">Stock</th>
+              <th className="px-3 py-2 font-medium">Avg Cost</th>
               <th className="px-3 py-2 font-medium">Threshold</th>
               <th className="px-3 py-2 font-medium">Adjust</th>
             </tr>
@@ -79,12 +81,17 @@ export default async function InventoryPage({
                     </span>
                     {lowStock && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">LOW</span>}
                   </td>
+                  <td className="px-3 py-2 text-muted" data-testid="inv-cost">
+                    <Link href={`/admin/products/${p.id}/edit#cost-history`} className="hover:text-accent hover:underline">
+                      {formatBDT(p.costPrice)}
+                    </Link>
+                  </td>
                   <td className="px-3 py-2 text-muted">{p.lowStockAt}</td>
                   <td className="px-3 py-2"><StockAdjust productId={p.id} /></td>
                 </tr>
               );
             })}
-            {items.length === 0 && <tr><td colSpan={5} className="px-3 py-8 text-center text-muted">No products.</td></tr>}
+            {items.length === 0 && <tr><td colSpan={6} className="px-3 py-8 text-center text-muted">No products.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -92,14 +99,16 @@ export default async function InventoryPage({
       <AdminPagination total={total} page={page} perPage={perPage} />
 
       <div>
-        <h2 className="mb-2 text-sm font-bold text-ink">Recent stock changes</h2>
-        <div className="overflow-hidden rounded border border-hairline">
-          <table className="w-full text-sm">
+        <h2 className="mb-2 text-sm font-bold text-ink">Recent stock &amp; cost changes</h2>
+        <div className="overflow-x-auto rounded border border-hairline">
+          <table className="w-full min-w-[720px] text-sm">
             <thead className="bg-surface-2 text-left text-xs text-muted">
               <tr>
                 <th className="px-3 py-2 font-medium">Product</th>
                 <th className="px-3 py-2 font-medium">Change</th>
                 <th className="px-3 py-2 font-medium">Reason</th>
+                <th className="px-3 py-2 font-medium">Unit Cost</th>
+                <th className="px-3 py-2 font-medium">Avg Cost After</th>
                 <th className="px-3 py-2 font-medium">When</th>
               </tr>
             </thead>
@@ -107,14 +116,16 @@ export default async function InventoryPage({
               {logs.items.map((l) => (
                 <tr key={l.id} className="bg-surface">
                   <td className="px-3 py-2">{l.product.name}</td>
-                  <td className={cn("px-3 py-2 font-semibold", l.change < 0 ? "text-accent" : "text-green-700")}>
-                    {l.change > 0 ? `+${l.change}` : l.change}
+                  <td className={cn("px-3 py-2 font-semibold", l.change < 0 ? "text-accent" : l.change > 0 ? "text-green-700" : "text-muted")}>
+                    {l.change > 0 ? `+${l.change}` : l.change === 0 ? "—" : l.change}
                   </td>
                   <td className="px-3 py-2 text-muted">{l.reason}</td>
+                  <td className="px-3 py-2 text-muted">{l.unitCost ? formatBDT(l.unitCost) : "—"}</td>
+                  <td className="px-3 py-2 font-medium text-ink">{l.costAfter ? formatBDT(l.costAfter) : "—"}</td>
                   <td className="px-3 py-2 text-muted">{new Date(l.createdAt).toLocaleString()}</td>
                 </tr>
               ))}
-              {logs.items.length === 0 && <tr><td colSpan={4} className="px-3 py-6 text-center text-muted">No changes yet.</td></tr>}
+              {logs.items.length === 0 && <tr><td colSpan={6} className="px-3 py-6 text-center text-muted">No changes yet.</td></tr>}
             </tbody>
           </table>
         </div>

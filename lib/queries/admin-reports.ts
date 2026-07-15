@@ -48,7 +48,7 @@ export async function getSalesSummary(from?: Date, to?: Date): Promise<SalesSumm
     prisma.order.aggregate({ _sum: { total: true }, _count: { _all: true }, where: { ...soldWhere, paymentStatus: "PAID" } }),
     prisma.orderItem.aggregate({ _sum: { quantity: true }, where: { order: soldWhere } }),
     prisma.order.groupBy({ by: ["paymentMethod"], _count: { _all: true }, where: soldWhere }),
-    prisma.orderItem.findMany({ where: { order: soldWhere }, select: { quantity: true, product: { select: { costPrice: true } } } }),
+    prisma.orderItem.findMany({ where: { order: soldWhere }, select: { quantity: true, cost: true } }),
   ]);
 
   const grossRevenue = D(agg._sum.subtotal);
@@ -57,7 +57,7 @@ export async function getSalesSummary(from?: Date, to?: Date): Promise<SalesSumm
   const totalSales = D(agg._sum.total);
   const netRevenue = grossRevenue.minus(totalDiscount);
   const avgOrderValue = orderCount > 0 ? totalSales.div(orderCount) : ZERO;
-  const totalCost = costItems.reduce((s, i) => s.plus(i.product.costPrice.times(i.quantity)), ZERO);
+  const totalCost = costItems.reduce((s, i) => s.plus(i.cost.times(i.quantity)), ZERO);
   const grossProfit = grossRevenue.minus(totalCost);
   const profitMargin = grossRevenue.greaterThan(0) ? grossProfit.div(grossRevenue).toNumber() : 0;
   const denom = orderCount + cancelledOrders;
@@ -94,8 +94,9 @@ type SalesItem = {
   quantity: number;
   cancelled: boolean;
   productName: string;
-  costPrice: Prisma.Decimal;
+  cost: Prisma.Decimal; // snapshot unit cost at sale time
   categoryName: string;
+  categorySlug: string;
 };
 
 async function fetchSalesItems(from?: Date, to?: Date): Promise<SalesItem[]> {
@@ -106,9 +107,10 @@ async function fetchSalesItems(from?: Date, to?: Date): Promise<SalesItem[]> {
       productId: true,
       orderId: true,
       price: true,
+      cost: true,
       quantity: true,
       order: { select: { status: true } },
-      product: { select: { name: true, costPrice: true, category: { select: { name: true } } } },
+      product: { select: { name: true, category: { select: { name: true, slug: true } } } },
     },
   });
   return rows.map((r) => ({
@@ -118,10 +120,14 @@ async function fetchSalesItems(from?: Date, to?: Date): Promise<SalesItem[]> {
     quantity: r.quantity,
     cancelled: r.order.status === "CANCELLED",
     productName: r.product.name,
-    costPrice: r.product.costPrice,
+    cost: r.cost,
     categoryName: r.product.category.name,
+    categorySlug: r.product.category.slug,
   }));
 }
+
+export type ProductSort = "revenue" | "profit" | "margin" | "qty";
+export type CategorySort = "revenue" | "profit" | "margin";
 
 // ---------- 2. Product-wise Sales ----------
 export type ProductSalesRow = {
@@ -136,8 +142,13 @@ export type ProductSalesRow = {
   cancellationRate: number; // 0..1
 };
 
-export async function getProductSalesReport(from?: Date, to?: Date): Promise<ProductSalesRow[]> {
-  const items = await fetchSalesItems(from, to);
+export async function getProductSalesReport(
+  from?: Date,
+  to?: Date,
+  opts: { categorySlug?: string; sort?: ProductSort } = {},
+): Promise<ProductSalesRow[]> {
+  const all = await fetchSalesItems(from, to);
+  const items = opts.categorySlug ? all.filter((i) => i.categorySlug === opts.categorySlug) : all;
   const map = new Map<
     string,
     { name: string; category: string; soldQty: number; revenue: Prisma.Decimal; cost: Prisma.Decimal; cancelledQty: number }
@@ -154,7 +165,7 @@ export async function getProductSalesReport(from?: Date, to?: Date): Promise<Pro
     } else {
       g.soldQty += it.quantity;
       g.revenue = g.revenue.plus(it.price.times(it.quantity));
-      g.cost = g.cost.plus(it.costPrice.times(it.quantity));
+      g.cost = g.cost.plus(it.cost.times(it.quantity));
     }
   }
 
@@ -174,7 +185,14 @@ export async function getProductSalesReport(from?: Date, to?: Date): Promise<Pro
         cancellationRate: denom > 0 ? g.cancelledQty / denom : 0,
       };
     })
-    .sort((a, b) => b.revenue.comparedTo(a.revenue));
+    .sort((a, b) => {
+      switch (opts.sort) {
+        case "profit": return b.profit.comparedTo(a.profit);
+        case "margin": return b.margin - a.margin;
+        case "qty": return b.soldQty - a.soldQty;
+        default: return b.revenue.comparedTo(a.revenue);
+      }
+    });
 }
 
 // ---------- 3. Category-wise Sales ----------
@@ -204,7 +222,7 @@ export async function getCategorySalesReport(from?: Date, to?: Date): Promise<Ca
     g.orders.add(it.orderId);
     g.itemsSold += it.quantity;
     g.revenue = g.revenue.plus(it.price.times(it.quantity));
-    g.cost = g.cost.plus(it.costPrice.times(it.quantity));
+    g.cost = g.cost.plus(it.cost.times(it.quantity));
   }
 
   return [...map.entries()]

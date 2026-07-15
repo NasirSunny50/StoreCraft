@@ -15,11 +15,21 @@ export async function getInventory(lowOnly: boolean, q?: string) {
       slug: true,
       stock: true,
       lowStockAt: true,
+      costPrice: true,
       category: { select: { name: true } },
     },
     take: 300,
   });
   return lowOnly ? rows.filter((p) => p.stock <= p.lowStockAt) : rows;
+}
+
+/** Cost-change history for one product (restocks + manual edits), newest first. */
+export async function getProductCostHistory(productId: string, take = 50) {
+  return prisma.stockLog.findMany({
+    where: { productId, costAfter: { not: null } },
+    orderBy: { createdAt: "desc" },
+    take,
+  });
 }
 
 export async function getStockLogs(opts: { skip?: number; take?: number } = {}) {

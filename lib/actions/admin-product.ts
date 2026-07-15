@@ -70,9 +70,16 @@ export async function createProduct(
     },
   });
 
-  if (d.stock > 0) {
+  const initialCost = d.costPrice ?? 0;
+  if (d.stock > 0 || initialCost > 0) {
     await prisma.stockLog.create({
-      data: { productId: product.id, change: d.stock, reason: "INITIAL" },
+      data: {
+        productId: product.id,
+        change: d.stock,
+        reason: "INITIAL",
+        unitCost: initialCost > 0 ? new Prisma.Decimal(initialCost) : null,
+        costAfter: initialCost > 0 ? new Prisma.Decimal(initialCost) : null,
+      },
     });
   }
 
@@ -91,8 +98,17 @@ export async function updateProduct(
   }
   const d = parsed.data;
   const slug = await uniqueProductSlug(d.slug || d.name, id);
+  const newCost = new Prisma.Decimal(d.costPrice ?? 0);
 
   await prisma.$transaction(async (tx) => {
+    // Track a manual cost change so it shows up in the product's cost history.
+    const before = await tx.product.findUnique({ where: { id }, select: { costPrice: true } });
+    if (before && !before.costPrice.equals(newCost)) {
+      await tx.stockLog.create({
+        data: { productId: id, change: 0, reason: "COST_EDIT", unitCost: newCost, costAfter: newCost },
+      });
+    }
+
     await tx.product.update({
       where: { id },
       data: {
@@ -101,7 +117,7 @@ export async function updateProduct(
         description: d.description,
         price: new Prisma.Decimal(d.price),
         comparePrice: d.comparePrice ? new Prisma.Decimal(d.comparePrice) : null,
-        costPrice: new Prisma.Decimal(d.costPrice ?? 0),
+        costPrice: newCost,
         stock: d.stock,
         lowStockAt: d.lowStockAt,
         categoryId: d.categoryId,
