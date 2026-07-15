@@ -6,17 +6,20 @@ import { Check, SquarePlus, ShoppingBag } from "lucide-react";
 import { addToCartAction } from "@/lib/actions/cart";
 import { Button } from "@/components/ui/button";
 import { WishlistButton } from "@/components/wishlist/wishlist-button";
+import { emitCartToast } from "@/components/ui/cart-toast";
 import { cn } from "@/lib/utils/cn";
 import { parseColorOption } from "@/lib/utils/color";
 
 export function ProductBuyBox({
   productId,
+  productName,
   stock,
   colors,
   isAuthed,
   initiallyInWishlist,
 }: {
   productId: string;
+  productName?: string;
   stock: number;
   colors: string[];
   isAuthed: boolean;
@@ -28,17 +31,25 @@ export function ProductBuyBox({
   const [active, setActive] = useState<"cart" | "buy" | null>(null);
   const [qty, setQty] = useState(1);
   const [color, setColor] = useState(colors[0] ?? "");
-  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [added, setAdded] = useState(false);
   const soldOut = stock <= 0;
 
   function add(which: "cart" | "buy", then?: () => void) {
-    setMsg(null);
     setActive(which);
     startTransition(async () => {
       const res = await addToCartAction(productId, qty, color);
-      setMsg(res.ok ? { type: "ok", text: "Added to cart" } : { type: "err", text: res.error });
+      if (res.ok) {
+        // "Buy" navigates straight to the cart, so only toast the plain add.
+        if (which === "cart") {
+          emitCartToast({ title: "Added to cart", subtitle: productName ?? "Item added to your cart." });
+          setAdded(true);
+          setTimeout(() => setAdded(false), 1600);
+        }
+        then?.();
+      } else {
+        emitCartToast({ type: "error", title: "Couldn’t add to cart", subtitle: res.error });
+      }
       router.refresh();
-      if (res.ok) then?.();
       setActive(null);
     });
   }
@@ -108,15 +119,6 @@ export function ProductBuyBox({
         /* Action bar: sticky at the viewport bottom on mobile (over the tab
            bar, like the reference site), inline in the column on lg+. */
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-hairline bg-surface p-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:static lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
-          {msg && (
-            <p
-              data-testid="cart-feedback"
-              role="status"
-              className={cn("mb-2 text-center text-xs font-medium lg:text-left", msg.type === "ok" ? "text-green-700" : "text-amber-600")}
-            >
-              {msg.text}
-            </p>
-          )}
           <div className="mx-auto grid max-w-md grid-cols-2 gap-3 lg:mx-0 lg:max-w-none">
             <Button
               type="button"
@@ -133,17 +135,21 @@ export function ProductBuyBox({
             </Button>
             <Button
               type="button"
-              variant="outline"
+              variant={added ? "navy" : "outline"}
               size="lg"
               loading={active === "cart"}
               disabled={pending}
               data-testid="add-to-cart"
               onClick={() => add("cart")}
-              className="rounded-full px-4 lg:px-6"
+              className="rounded-full px-4 transition-colors lg:px-6"
             >
               {active !== "cart" &&
-                (msg?.type === "ok" ? <Check className="h-4 w-4 shrink-0" /> : <SquarePlus className="h-4 w-4 shrink-0" />)}
-              {active === "cart" ? "Adding…" : "Add to cart"}
+                (added ? (
+                  <Check className="h-4 w-4 shrink-0" style={{ animation: "check-pop 0.35s ease-out" }} />
+                ) : (
+                  <SquarePlus className="h-4 w-4 shrink-0" />
+                ))}
+              {active === "cart" ? "Adding…" : added ? "Added!" : "Add to cart"}
             </Button>
           </div>
         </div>

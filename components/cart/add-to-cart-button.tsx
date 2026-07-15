@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Check } from "lucide-react";
 import { addToCartAction } from "@/lib/actions/cart";
 import { Button } from "@/components/ui/button";
+import { emitCartToast } from "@/components/ui/cart-toast";
 
 export function AddToCartButton({
   productId,
@@ -20,19 +21,20 @@ export function AddToCartButton({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [qty, setQty] = useState(1);
-  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [added, setAdded] = useState(false);
 
   const outOfStock = stock <= 0;
 
   function handleAdd() {
-    setMsg(null);
     startTransition(async () => {
       const res = await addToCartAction(productId, qty);
-      setMsg(
-        res.ok
-          ? { type: "ok", text: "Added to cart" }
-          : { type: "err", text: res.error },
-      );
+      if (res.ok) {
+        emitCartToast({ title: "Added to cart", subtitle: "Item added — ready when you are." });
+        setAdded(true);
+        setTimeout(() => setAdded(false), 1600);
+      } else {
+        emitCartToast({ type: "error", title: "Couldn’t add to cart", subtitle: res.error });
+      }
       router.refresh();
     });
   }
@@ -93,31 +95,20 @@ export function AddToCartButton({
       )}
       <Button
         type="button"
-        variant="accent"
+        variant={added ? "navy" : "accent"}
         size={size}
         onClick={handleAdd}
         disabled={pending}
         data-testid="add-to-cart"
-        className="w-full"
+        className="w-full transition-colors"
       >
-        {msg?.type === "ok" ? (
-          <Check className="h-4 w-4" />
+        {added ? (
+          <Check className="h-4 w-4" style={{ animation: "check-pop 0.35s ease-out" }} />
         ) : (
           <Plus className="h-4 w-4" />
         )}
-        {pending ? "Adding…" : "Add to cart"}
+        {pending ? "Adding…" : added ? "Added!" : "Add to cart"}
       </Button>
-      {msg && (
-        <p
-          data-testid="cart-feedback"
-          role="status"
-          className={`font-mono text-xs ${
-            msg.type === "ok" ? "text-accent" : "text-amber-600"
-          }`}
-        >
-          {msg.text}
-        </p>
-      )}
     </div>
   );
 }

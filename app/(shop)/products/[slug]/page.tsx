@@ -121,6 +121,7 @@ export default async function ProductDetailPage({
             <div className="mt-4 max-w-md">
               <ProductBuyBox
                 productId={product.id}
+                productName={product.name}
                 stock={product.stock}
                 colors={product.colors}
                 isAuthed={isAuthed}

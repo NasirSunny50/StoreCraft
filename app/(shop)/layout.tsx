@@ -6,6 +6,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { CompareProvider } from "@/components/compare/compare-context";
 import { CompareBar } from "@/components/compare/compare-bar";
+import { CartToaster } from "@/components/ui/cart-toast";
 
 export default async function ShopLayout({
   children,
@@ -21,6 +22,7 @@ export default async function ShopLayout({
       </main>
 
       <CompareBar />
+      <CartToaster />
       <MobileBottomNav isAuthed={!!session?.user} />
 
       <footer className="mt-10 bg-navbar text-white/70">
