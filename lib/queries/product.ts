@@ -124,6 +124,15 @@ export async function getCategories() {
   });
 }
 
+/** Lightweight {id, name} list for filter dropdowns, optionally scoped to a category. */
+export async function getProductOptions(categorySlug?: string) {
+  return prisma.product.findMany({
+    where: { isDeleted: false, ...(categorySlug ? { category: { slug: categorySlug } } : {}) },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+}
+
 export async function getBrands() {
   return prisma.brand.findMany({
     orderBy: { name: "asc" },

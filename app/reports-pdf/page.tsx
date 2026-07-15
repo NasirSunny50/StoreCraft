@@ -10,6 +10,7 @@ import {
   type CategorySort,
 } from "@/lib/queries/admin-reports";
 import { formatBDT } from "@/lib/utils/money";
+import { formatDate } from "@/lib/utils/date";
 import { PrintControls } from "@/components/admin/print-controls";
 
 export const metadata = { title: "Report — PDF" };
@@ -30,7 +31,17 @@ const ORDER_STATUSES = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"] as const
 export default async function ReportsPdfPage({
   searchParams,
 }: {
-  searchParams: Promise<{ report?: string; from?: string; to?: string; cat?: string; sort?: string; status?: string }>;
+  searchParams: Promise<{
+    report?: string;
+    from?: string;
+    to?: string;
+    cat?: string;
+    product?: string;
+    sort?: string;
+    order?: string;
+    customer?: string;
+    status?: string;
+  }>;
 }) {
   await requireAdmin();
   const sp = await searchParams;
@@ -39,12 +50,18 @@ export default async function ReportsPdfPage({
   const to = sp.to ? new Date(`${sp.to}T23:59:59`) : undefined;
   const has = (arr: readonly string[], v?: string) => !!v && arr.includes(v);
   const cat = sp.cat || undefined;
+  const product = sp.product || undefined;
+  const orderNo = sp.order?.trim() || undefined;
+  const customer = sp.customer?.trim() || undefined;
   const productSort = has(PRODUCT_SORTS, sp.sort) ? (sp.sort as ProductSort) : undefined;
   const categorySort = has(CATEGORY_SORTS, sp.sort) ? (sp.sort as CategorySort) : undefined;
   const status = has(ORDER_STATUSES, sp.status) ? (sp.status as OrderStatus) : undefined;
   const b = await getBranding();
 
-  const rangeLabel = sp.from || sp.to ? `${sp.from ?? "Beginning"} — ${sp.to ?? "Today"}` : "All time";
+  const rangeLabel =
+    sp.from || sp.to
+      ? `${sp.from ? formatDate(sp.from) : "Beginning"} — ${sp.to ? formatDate(sp.to) : "Today"}`
+      : "All time";
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 text-ink print:max-w-none print:p-0">
@@ -75,9 +92,9 @@ export default async function ReportsPdfPage({
         {/* ---------- Body ---------- */}
         <main className="space-y-5 px-6 py-6 sm:px-8">
           {report === "summary" && <SummaryPdf from={from} to={to} />}
-          {report === "products" && <ProductsPdf from={from} to={to} categorySlug={cat} sort={productSort} />}
-          {report === "categories" && <CategoriesPdf from={from} to={to} sort={categorySort} />}
-          {report === "orders" && <OrdersPdf from={from} to={to} status={status} />}
+          {report === "products" && <ProductsPdf from={from} to={to} categorySlug={cat} productId={product} sort={productSort} />}
+          {report === "categories" && <CategoriesPdf from={from} to={to} categorySlug={cat} sort={categorySort} />}
+          {report === "orders" && <OrdersPdf from={from} to={to} status={status} orderNumber={orderNo} customer={customer} />}
         </main>
 
         {/* ---------- Footer ---------- */}
@@ -158,14 +175,16 @@ async function ProductsPdf({
   from,
   to,
   categorySlug,
+  productId,
   sort,
 }: {
   from?: Date;
   to?: Date;
   categorySlug?: string;
+  productId?: string;
   sort?: ProductSort;
 }) {
-  const rows = await getProductSalesReport(from, to, { categorySlug, sort });
+  const rows = await getProductSalesReport(from, to, { categorySlug, productId, sort });
   return (
     <>
       <Scroll>
@@ -205,8 +224,8 @@ async function ProductsPdf({
 }
 
 // ---------- 3. Categories ----------
-async function CategoriesPdf({ from, to, sort }: { from?: Date; to?: Date; sort?: CategorySort }) {
-  const rows = await getCategorySalesReport(from, to, { sort });
+async function CategoriesPdf({ from, to, categorySlug, sort }: { from?: Date; to?: Date; categorySlug?: string; sort?: CategorySort }) {
+  const rows = await getCategorySalesReport(from, to, { categorySlug, sort });
   return (
     <Scroll>
       <table className="w-full min-w-[480px] border-collapse">
@@ -239,8 +258,20 @@ async function CategoriesPdf({ from, to, sort }: { from?: Date; to?: Date; sort?
 }
 
 // ---------- 4. Orders ----------
-async function OrdersPdf({ from, to, status }: { from?: Date; to?: Date; status?: OrderStatus }) {
-  const { orders, total } = await getSalesReport(from, to, status);
+async function OrdersPdf({
+  from,
+  to,
+  status,
+  orderNumber,
+  customer,
+}: {
+  from?: Date;
+  to?: Date;
+  status?: OrderStatus;
+  orderNumber?: string;
+  customer?: string;
+}) {
+  const { orders, total } = await getSalesReport(from, to, { status, orderNumber, customer });
   return (
     <Scroll>
       <table className="w-full min-w-[560px] border-collapse">
@@ -260,7 +291,7 @@ async function OrdersPdf({ from, to, status }: { from?: Date; to?: Date; status?
               <td className={td}>{o.user?.name ?? `${o.address.fullName} (Guest)`}</td>
               <td className={`${td} text-muted`}>{o.status}</td>
               <td className={`${tdNum} font-semibold`}>{formatBDT(o.total)}</td>
-              <td className={`${td} text-muted`}>{new Date(o.createdAt).toLocaleDateString()}</td>
+              <td className={`${td} text-muted`}>{formatDate(o.createdAt)}</td>
             </tr>
           ))}
           {orders.length === 0 && <tr><td className={`${td} text-center text-muted`} colSpan={5}>No sales in range.</td></tr>}

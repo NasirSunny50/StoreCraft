@@ -145,10 +145,14 @@ export type ProductSalesRow = {
 export async function getProductSalesReport(
   from?: Date,
   to?: Date,
-  opts: { categorySlug?: string; sort?: ProductSort } = {},
+  opts: { categorySlug?: string; productId?: string; sort?: ProductSort } = {},
 ): Promise<ProductSalesRow[]> {
   const all = await fetchSalesItems(from, to);
-  const items = opts.categorySlug ? all.filter((i) => i.categorySlug === opts.categorySlug) : all;
+  const items = all.filter(
+    (i) =>
+      (!opts.categorySlug || i.categorySlug === opts.categorySlug) &&
+      (!opts.productId || i.productId === opts.productId),
+  );
   const map = new Map<
     string,
     { name: string; category: string; soldQty: number; revenue: Prisma.Decimal; cost: Prisma.Decimal; cancelledQty: number }
@@ -208,9 +212,10 @@ export type CategorySalesRow = {
 export async function getCategorySalesReport(
   from?: Date,
   to?: Date,
-  opts: { sort?: CategorySort } = {},
+  opts: { categorySlug?: string; sort?: CategorySort } = {},
 ): Promise<CategorySalesRow[]> {
-  const items = await fetchSalesItems(from, to);
+  const all = await fetchSalesItems(from, to);
+  const items = opts.categorySlug ? all.filter((i) => i.categorySlug === opts.categorySlug) : all;
   const map = new Map<
     string,
     { orders: Set<string>; itemsSold: number; revenue: Prisma.Decimal; cost: Prisma.Decimal }

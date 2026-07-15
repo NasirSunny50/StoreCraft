@@ -34,7 +34,10 @@ export async function GET(req: Request) {
   const fromDate = from ? new Date(from) : undefined;
   const toDate = to ? new Date(`${to}T23:59:59`) : undefined;
 
-  const catParam = url.searchParams.get("cat") ?? undefined;
+  const catParam = url.searchParams.get("cat") || undefined;
+  const productParam = url.searchParams.get("product") || undefined;
+  const orderParam = url.searchParams.get("order")?.trim() || undefined;
+  const customerParam = url.searchParams.get("customer")?.trim() || undefined;
   const sortParam = url.searchParams.get("sort") ?? undefined;
   const statusParam = url.searchParams.get("status") ?? undefined;
   const has = (arr: readonly string[], v?: string) => !!v && arr.includes(v);
@@ -69,21 +72,21 @@ export async function GET(req: Request) {
       ["Cancellation Rate", pct(s.cancellationRate)],
     ];
   } else if (report === "products") {
-    const data = await getProductSalesReport(fromDate, toDate, { categorySlug: catParam, sort: productSort });
+    const data = await getProductSalesReport(fromDate, toDate, { categorySlug: catParam, productId: productParam, sort: productSort });
     filename = "product-sales";
     rows = [["Product", "Category", "Qty Sold", "Revenue", "Profit", "Margin", "Cancellation Rate"]];
     for (const r of data) {
       rows.push([r.name, r.category, String(r.soldQty), r.revenue.toString(), r.profit.toString(), pct(r.margin), pct(r.cancellationRate)]);
     }
   } else if (report === "categories") {
-    const data = await getCategorySalesReport(fromDate, toDate, { sort: categorySort });
+    const data = await getCategorySalesReport(fromDate, toDate, { categorySlug: catParam, sort: categorySort });
     filename = "category-sales";
     rows = [["Category", "Orders", "Items Sold", "Revenue", "Profit", "Margin"]];
     for (const r of data) {
       rows.push([r.category, String(r.orders), String(r.itemsSold), r.revenue.toString(), r.profit.toString(), pct(r.margin)]);
     }
   } else {
-    const report2 = await getSalesReport(fromDate, toDate, status);
+    const report2 = await getSalesReport(fromDate, toDate, { status, orderNumber: orderParam, customer: customerParam });
     filename = "sales-report";
     rows = [["Order Number", "Date", "Customer", "Email", "Status", "Subtotal", "Discount", "Shipping", "Total"]];
     for (const o of report2.orders) {

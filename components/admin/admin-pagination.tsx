@@ -56,7 +56,7 @@ export function AdminPagination({
   return (
     <div className="mt-3 flex flex-col items-center justify-between gap-3 text-sm sm:flex-row" data-testid={testId}>
       <div className="flex items-center gap-2">
-        <label htmlFor={perPageKey} className="text-muted">Rows per page:</label>
+        <label htmlFor={perPageKey} className="text-muted">Items per page:</label>
         <select
           id={perPageKey}
           data-testid={cid("per-page-select")}

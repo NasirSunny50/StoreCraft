@@ -15,6 +15,7 @@ import {
   BarChart3,
   Truck,
   Palette,
+  Images,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -62,6 +63,7 @@ const GROUPS: Group[] = [
       { href: "/admin/reports", label: "Reports", icon: BarChart3, adminOnly: true },
       { href: "/admin/settings", label: "Delivery Charges", icon: Truck, adminOnly: true },
       { href: "/admin/branding", label: "Store Branding", icon: Palette, adminOnly: true },
+      { href: "/admin/banners", label: "Homepage Banners", icon: Images, adminOnly: true },
     ],
   },
 ];

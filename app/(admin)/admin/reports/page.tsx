@@ -11,10 +11,11 @@ import {
   type ProductSort,
   type CategorySort,
 } from "@/lib/queries/admin-reports";
-import { getCategories } from "@/lib/queries/product";
+import { getCategories, getProductOptions } from "@/lib/queries/product";
 import { getInventory } from "@/lib/queries/admin-misc";
 import type { OrderStatus } from "@prisma/client";
 import { formatBDT } from "@/lib/utils/money";
+import { formatDate } from "@/lib/utils/date";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { OrderStatusBadge } from "@/components/order/order-status-badge";
 import { AdminPagination } from "@/components/admin/admin-pagination";
@@ -59,7 +60,10 @@ export default async function ReportsPage({
     perPage?: string;
     report?: string;
     cat?: string;
+    product?: string;
     sort?: string;
+    order?: string;
+    customer?: string;
     status?: string;
   }>;
 }) {
@@ -72,7 +76,7 @@ export default async function ReportsPage({
 
   // Report-specific filters (validated against the active report so a stale
   // param from another tab is ignored).
-  const cat = report === "products" ? sp.cat : undefined;
+  const cat = report === "products" || report === "categories" ? sp.cat || undefined : undefined;
   const productSort =
     report === "products" && PRODUCT_SORTS.some((s) => s.value === sp.sort)
       ? (sp.sort as ProductSort)
@@ -81,12 +85,22 @@ export default async function ReportsPage({
     report === "categories" && CATEGORY_SORTS.some((s) => s.value === sp.sort)
       ? (sp.sort as CategorySort)
       : undefined;
+  const orderNo = report === "orders" ? sp.order?.trim() || undefined : undefined;
+  const customer = report === "orders" ? sp.customer?.trim() || undefined : undefined;
   const status =
     report === "orders" && ORDER_STATUSES.some((s) => s === sp.status)
       ? (sp.status as OrderStatus)
       : undefined;
 
-  const categories = report === "products" ? await getCategories() : [];
+  // Category dropdown feeds both product-wise and category-wise tabs; the
+  // product dropdown is scoped to the chosen category on the product tab.
+  const categories = report === "products" || report === "categories" ? await getCategories() : [];
+  const productOptions = report === "products" ? await getProductOptions(cat) : [];
+  // Only honour a product filter that belongs to the (possibly category-scoped) list.
+  const product =
+    report === "products" && sp.product && productOptions.some((p) => p.id === sp.product)
+      ? sp.product
+      : undefined;
 
   // from/to persist across tabs; report-specific params only ride along when set.
   const qs = (extra: Record<string, string | undefined>) => {
@@ -101,7 +115,10 @@ export default async function ReportsPage({
   const exportParams: Record<string, string | undefined> = {
     report,
     cat,
+    product,
     sort: productSort ?? categorySort,
+    order: orderNo,
+    customer,
     status,
   };
 
@@ -109,21 +126,33 @@ export default async function ReportsPage({
     <div className="space-y-5">
       <AdminPageHeader title="Reports" testId="admin-heading" />
 
-      {/* Date filter (shared across tabs) */}
-      <form action="/admin/reports" className="flex flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:items-end">
+      {/* Date filter (shared across tabs). Keyed on the active params so a soft
+          navigation (Clear, tab switch) remounts the uncontrolled inputs and
+          they pick up the new defaults instead of keeping stale values. */}
+      <form
+        key={`${report}|${from ?? ""}|${to ?? ""}|${cat ?? ""}|${productSort ?? categorySort ?? ""}|${product ?? ""}|${orderNo ?? ""}|${customer ?? ""}|${status ?? ""}`}
+        action="/admin/reports"
+        className="flex flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:items-end"
+      >
         <input type="hidden" name="report" value={report} />
         <div className="flex gap-2">
           <DatePicker name="from" label="From" defaultValue={from ?? ""} />
           <DatePicker name="to" label="To" defaultValue={to ?? ""} />
         </div>
 
-        {/* Product-wise: category + sort */}
+        {/* Product-wise: product + category + sort */}
         {report === "products" && (
           <>
             <FilterSelect name="cat" label="Category" defaultValue={cat ?? ""} testId="filter-cat">
               <option value="">All categories</option>
               {categories.map((c) => (
                 <option key={c.slug} value={c.slug}>{c.name}</option>
+              ))}
+            </FilterSelect>
+            <FilterSelect name="product" label="Product" defaultValue={product ?? ""} testId="filter-product">
+              <option value="">All products</option>
+              {productOptions.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </FilterSelect>
             <FilterSelect name="sort" label="Sort by" defaultValue={productSort ?? "revenue"} testId="filter-sort">
@@ -134,26 +163,48 @@ export default async function ReportsPage({
           </>
         )}
 
-        {/* Category-wise: sort */}
+        {/* Category-wise: category + sort */}
         {report === "categories" && (
-          <FilterSelect name="sort" label="Sort by" defaultValue={categorySort ?? "revenue"} testId="filter-sort">
-            {CATEGORY_SORTS.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </FilterSelect>
+          <>
+            <FilterSelect name="cat" label="Category" defaultValue={cat ?? ""} testId="filter-cat">
+              <option value="">All categories</option>
+              {categories.map((c) => (
+                <option key={c.slug} value={c.slug}>{c.name}</option>
+              ))}
+            </FilterSelect>
+            <FilterSelect name="sort" label="Sort by" defaultValue={categorySort ?? "revenue"} testId="filter-sort">
+              {CATEGORY_SORTS.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </FilterSelect>
+          </>
         )}
 
-        {/* Orders: status */}
+        {/* Orders: order # + customer + status */}
         {report === "orders" && (
-          <FilterSelect name="status" label="Status" defaultValue={status ?? ""} testId="filter-status">
-            <option value="">All statuses</option>
-            {ORDER_STATUSES.map((s) => (
-              <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>
-            ))}
-          </FilterSelect>
+          <>
+            <FilterText name="order" label="Order #" defaultValue={orderNo ?? ""} placeholder="Order number" testId="filter-order" />
+            <FilterText name="customer" label="Customer" defaultValue={customer ?? ""} placeholder="Name or email" testId="filter-customer" />
+            <FilterSelect name="status" label="Status" defaultValue={status ?? ""} testId="filter-status">
+              <option value="">All statuses</option>
+              {ORDER_STATUSES.map((s) => (
+                <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>
+              ))}
+            </FilterSelect>
+          </>
         )}
 
-        <button className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong">Apply</button>
+        <div className="flex gap-2">
+          <button className="rounded-lg bg-accent px-4 py-2 font-medium text-white hover:bg-accent-strong">Apply</button>
+          {/* Reset all filters (dates + report-specific) but stay on the active tab. */}
+          <Link
+            href={`/admin/reports?report=${report}`}
+            data-testid="filter-clear"
+            className="rounded-lg border border-hairline-strong px-4 py-2 font-medium text-ink hover:border-accent hover:text-accent"
+          >
+            Clear
+          </Link>
+        </div>
         <div className="flex flex-wrap gap-2 sm:ml-auto">
           <a
             href={`/api/admin/reports/sales.csv?${qs(exportParams)}`}
@@ -192,9 +243,9 @@ export default async function ReportsPage({
       </div>
 
       {report === "summary" && <SummaryReport from={fromDate} to={toDate} />}
-      {report === "products" && <ProductReport from={fromDate} to={toDate} categorySlug={cat} sort={productSort} />}
-      {report === "categories" && <CategoryReport from={fromDate} to={toDate} sort={categorySort} />}
-      {report === "orders" && <OrdersReport from={fromDate} to={toDate} status={status} sp={sp} />}
+      {report === "products" && <ProductReport from={fromDate} to={toDate} categorySlug={cat} productId={product} sort={productSort} />}
+      {report === "categories" && <CategoryReport from={fromDate} to={toDate} categorySlug={cat} sort={categorySort} />}
+      {report === "orders" && <OrdersReport from={fromDate} to={toDate} status={status} orderNumber={orderNo} customer={customer} sp={sp} />}
     </div>
   );
 }
@@ -266,14 +317,16 @@ async function ProductReport({
   from,
   to,
   categorySlug,
+  productId,
   sort,
 }: {
   from?: Date;
   to?: Date;
   categorySlug?: string;
+  productId?: string;
   sort?: ProductSort;
 }) {
-  const rows = await getProductSalesReport(from, to, { categorySlug, sort });
+  const rows = await getProductSalesReport(from, to, { categorySlug, productId, sort });
   return (
     <ReportTable
       testId="report-products"
@@ -295,8 +348,8 @@ async function ProductReport({
 }
 
 // ---------- 3. Category-wise ----------
-async function CategoryReport({ from, to, sort }: { from?: Date; to?: Date; sort?: CategorySort }) {
-  const rows = await getCategorySalesReport(from, to, { sort });
+async function CategoryReport({ from, to, categorySlug, sort }: { from?: Date; to?: Date; categorySlug?: string; sort?: CategorySort }) {
+  const rows = await getCategorySalesReport(from, to, { categorySlug, sort });
   return (
     <ReportTable
       testId="report-categories"
@@ -321,15 +374,22 @@ async function OrdersReport({
   from,
   to,
   status,
+  orderNumber,
+  customer,
   sp,
 }: {
   from?: Date;
   to?: Date;
   status?: OrderStatus;
+  orderNumber?: string;
+  customer?: string;
   sp: { page?: string; perPage?: string };
 }) {
   const { page, perPage, skip, take } = parsePageParams(sp);
-  const [report, lowStock] = await Promise.all([getSalesReport(from, to, status), getInventory(true)]);
+  const [report, lowStock] = await Promise.all([
+    getSalesReport(from, to, { status, orderNumber, customer }),
+    getInventory(true),
+  ]);
   const pagedOrders = report.orders.slice(skip, skip + take);
 
   return (
@@ -363,7 +423,7 @@ async function OrdersReport({
                   <td className="px-3 py-2 text-muted">{o.user?.name ?? `${o.address.fullName} (Guest)`}</td>
                   <td className="px-3 py-2"><OrderStatusBadge status={o.status} /></td>
                   <td className="px-3 py-2 font-medium text-accent">{formatBDT(o.total)}</td>
-                  <td className="px-3 py-2 text-muted">{new Date(o.createdAt).toLocaleDateString()}</td>
+                  <td className="px-3 py-2 text-muted">{formatDate(o.createdAt)}</td>
                 </tr>
               ))}
               {report.orders.length === 0 && <tr><td colSpan={5} className="px-3 py-6 text-center text-muted">No sales in range.</td></tr>}
@@ -423,6 +483,35 @@ function Insight({ label, value, sub }: { label: string; value: string; sub?: st
       <div className="mt-0.5 truncate font-semibold text-ink">{value}</div>
       {sub && <div className="text-xs text-accent">{sub}</div>}
     </div>
+  );
+}
+
+// Text search filter for the GET form (submits on Enter or the Apply button).
+function FilterText({
+  name,
+  label,
+  defaultValue,
+  placeholder,
+  testId,
+}: {
+  name: string;
+  label: string;
+  defaultValue?: string;
+  placeholder?: string;
+  testId?: string;
+}) {
+  return (
+    <label className="flex flex-col">
+      <span className="text-xs text-muted">{label}</span>
+      <input
+        type="text"
+        name={name}
+        defaultValue={defaultValue}
+        placeholder={placeholder}
+        data-testid={testId}
+        className="min-w-[9.5rem] rounded-lg border border-hairline-strong bg-surface px-3 py-2 text-sm text-ink transition-colors placeholder:text-muted hover:border-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+      />
+    </label>
   );
 }
 

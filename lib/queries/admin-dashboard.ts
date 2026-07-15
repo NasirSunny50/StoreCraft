@@ -55,7 +55,12 @@ export async function getDashboardStats(sinceDays: number | null) {
   };
 }
 
-export async function getSalesReport(from?: Date, to?: Date, status?: OrderStatus) {
+export async function getSalesReport(
+  from?: Date,
+  to?: Date,
+  opts: { status?: OrderStatus; orderNumber?: string; customer?: string } = {},
+) {
+  const { status, orderNumber, customer } = opts;
   const createdAt: Prisma.DateTimeFilter = {};
   if (from) createdAt.gte = from;
   if (to) createdAt.lte = to;
@@ -65,6 +70,18 @@ export async function getSalesReport(from?: Date, to?: Date, status?: OrderStatu
       // A specific status filter overrides the default "everything but cancelled".
       status: status ?? { not: "CANCELLED" },
       ...(from || to ? { createdAt } : {}),
+      ...(orderNumber ? { orderNumber: { contains: orderNumber, mode: "insensitive" } } : {}),
+      // Match customer across account name/email, guest name, and guest email.
+      ...(customer
+        ? {
+            OR: [
+              { user: { name: { contains: customer, mode: "insensitive" } } },
+              { user: { email: { contains: customer, mode: "insensitive" } } },
+              { address: { fullName: { contains: customer, mode: "insensitive" } } },
+              { guestEmail: { contains: customer, mode: "insensitive" } },
+            ],
+          }
+        : {}),
     },
     orderBy: { createdAt: "desc" },
     include: {
