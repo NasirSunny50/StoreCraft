@@ -30,10 +30,8 @@ export const registerSchema = z
     email: optionalEmail,
     password: z
       .string()
-      .min(8, "Password must be at least 8 characters")
-      .max(72, "Password is too long") // bcrypt truncates beyond 72 bytes
-      .regex(/[A-Za-z]/, "Password must include at least one letter")
-      .regex(/[0-9]/, "Password must include at least one number"),
+      .min(6, "Password must be at least 6 characters")
+      .max(72, "Password is too long"), // bcrypt truncates beyond 72 bytes
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {

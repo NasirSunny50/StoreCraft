@@ -43,19 +43,14 @@ describe("registerSchema", () => {
     }
   });
 
-  it("rejects passwords shorter than 8 characters", () => {
-    const result = registerSchema.safeParse({ ...valid, password: "short", confirmPassword: "short" });
+  it("rejects passwords shorter than 6 characters", () => {
+    const result = registerSchema.safeParse({ ...valid, password: "12345", confirmPassword: "12345" });
     expect(result.success).toBe(false);
   });
 
-  it("rejects a letters-only password (no number)", () => {
-    const result = registerSchema.safeParse({ ...valid, password: "onlyletters", confirmPassword: "onlyletters" });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects a digits-only password (no letter)", () => {
-    const result = registerSchema.safeParse({ ...valid, password: "12345678", confirmPassword: "12345678" });
-    expect(result.success).toBe(false);
+  it("accepts any 6+ character password (no letter/number rule)", () => {
+    expect(registerSchema.safeParse({ ...valid, password: "abcdef", confirmPassword: "abcdef" }).success).toBe(true);
+    expect(registerSchema.safeParse({ ...valid, password: "123456", confirmPassword: "123456" }).success).toBe(true);
   });
 
   it("rejects a set-but-invalid email", () => {

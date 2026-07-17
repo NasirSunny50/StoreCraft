@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { registerAction, type AuthFormState } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 function Field({
   name,
@@ -37,7 +38,7 @@ function Field({
         autoComplete={autoComplete}
         required={required}
         placeholder={placeholder}
-        className="w-full rounded border border-hairline-strong bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+        className="w-full rounded-lg border border-hairline-strong bg-surface px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
       />
       {hint && <p className="text-xs text-muted">{hint}</p>}
       {errors?.[0] && <p className="text-sm text-accent">{errors[0]}</p>}
@@ -66,9 +67,13 @@ export function RegisterForm({ callbackUrl }: { callbackUrl?: string }) {
       )}
 
       <Field name="name" label="Full name" type="text" autoComplete="name" placeholder="Your name" errors={fe?.name} />
-      <Field name="phone" label="Mobile number" type="tel" autoComplete="tel" placeholder="01XXXXXXXXX" errors={fe?.phone} />
+      <div className="space-y-1">
+        <label htmlFor="phone" className="block text-sm font-medium text-ink">Mobile number</label>
+        <PhoneInput name="phone" id="phone" required testId="register-phone" />
+        {fe?.phone?.[0] && <p className="text-sm text-accent">{fe.phone[0]}</p>}
+      </div>
       <Field name="email" label="Email" type="email" autoComplete="email" placeholder="you@example.com" required={false} hint="Add an email to receive order updates by email." errors={fe?.email} />
-      <Field name="password" label="Password" type="password" autoComplete="new-password" placeholder="At least 8 characters" errors={fe?.password} />
+      <Field name="password" label="Password" type="password" autoComplete="new-password" placeholder="At least 6 characters" errors={fe?.password} />
       <Field name="confirmPassword" label="Confirm password" type="password" autoComplete="new-password" placeholder="Repeat the password" errors={fe?.confirmPassword} />
 
       <Button

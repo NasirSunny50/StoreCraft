@@ -35,7 +35,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
           autoComplete="username"
           required
           placeholder="01XXXXXXXXX or you@example.com"
-          className="w-full rounded border border-hairline-strong bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+          className="w-full rounded-lg border border-hairline-strong bg-surface px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
         />
         {state?.fieldErrors?.identifier && (
           <p className="text-sm text-accent">{state.fieldErrors.identifier[0]}</p>
@@ -53,7 +53,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
           autoComplete="current-password"
           required
           placeholder="Your password"
-          className="w-full rounded border border-hairline-strong bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+          className="w-full rounded-lg border border-hairline-strong bg-surface px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
         />
         {state?.fieldErrors?.password && (
           <p className="text-sm text-accent">{state.fieldErrors.password[0]}</p>

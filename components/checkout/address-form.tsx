@@ -7,6 +7,7 @@ import {
   type AddressFormState,
 } from "@/lib/actions/address";
 import { Button } from "@/components/ui/button";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { BD_CITIES, areasForCity } from "@/lib/data/bd-locations";
 
 function Field({
@@ -71,6 +72,7 @@ function SelectField({
       <select
         id={name}
         name={name}
+        required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
@@ -126,7 +128,13 @@ export function AddressForm({
     >
       <div className={compact ? "grid gap-3" : "grid gap-3 sm:grid-cols-2"}>
         <Field name="fullName" label="Full name" required errors={fe?.fullName} defaultValue={defaultFullName} />
-        <Field name="phone" label="Phone" required errors={fe?.phone} />
+        <div className="space-y-1">
+          <label htmlFor="addr-phone" className="block text-xs font-medium text-ink">
+            Phone <span className="text-accent">*</span>
+          </label>
+          <PhoneInput name="phone" id="addr-phone" required testId="addr-phone" />
+          {fe?.phone?.[0] && <p className="text-xs text-accent">{fe.phone[0]}</p>}
+        </div>
       </div>
       <Field name="line1" label="Address line 1" required errors={fe?.line1} />
       <Field name="line2" label="Address line 2" errors={fe?.line2} />
@@ -147,6 +155,7 @@ export function AddressForm({
         <SelectField
           name="area"
           label="Area"
+          required
           errors={fe?.area}
           value={area}
           onChange={setArea}

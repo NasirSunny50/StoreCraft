@@ -19,7 +19,7 @@ export const addressSchema = z.object({
   line1: z.string().trim().min(3, "Address is required").max(200),
   line2: optionalText(200),
   city: z.string().trim().min(2, "City is required").max(80),
-  area: optionalText(80),
+  area: z.string().trim().min(1, "Please select an area").max(80),
   postcode: optionalText(12),
   isDefault: z.coerce.boolean().optional(),
 });

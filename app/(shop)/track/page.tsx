@@ -5,6 +5,7 @@ import { ORDER_STATUS_FLOW, paymentMethodLabel } from "@/lib/order-math";
 import { formatBDT } from "@/lib/utils/money";
 import { colorName } from "@/lib/utils/color";
 import { OrderStatusBadge } from "@/components/order/order-status-badge";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { cn } from "@/lib/utils/cn";
 
 export const metadata = { title: "Track Order" };
@@ -75,15 +76,7 @@ export default async function TrackOrderPage({
         </div>
         <div>
           <label htmlFor="phone" className="mb-1 block text-xs font-medium text-muted">Phone number</label>
-          <input
-            id="phone"
-            name="phone"
-            required
-            defaultValue={phone ?? ""}
-            placeholder="01XXXXXXXXX"
-            data-testid="track-phone"
-            className={inputCls}
-          />
+          <PhoneInput name="phone" id="phone" required defaultValue={phone ?? ""} testId="track-phone" />
         </div>
         <div className="flex items-end">
           <button

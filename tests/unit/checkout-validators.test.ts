@@ -7,6 +7,7 @@ const validAddress = {
   phone: "01711-223344",
   line1: "House 12, Road 5",
   city: "Dhaka",
+  area: "Mirpur",
 };
 
 describe("addressSchema", () => {
@@ -14,23 +15,21 @@ describe("addressSchema", () => {
     expect(addressSchema.safeParse(validAddress).success).toBe(true);
   });
 
-  it("requires name, line1, city", () => {
+  it("requires name, line1, city, area", () => {
     expect(addressSchema.safeParse({ ...validAddress, fullName: "" }).success).toBe(false);
     expect(addressSchema.safeParse({ ...validAddress, line1: "" }).success).toBe(false);
     expect(addressSchema.safeParse({ ...validAddress, city: "" }).success).toBe(false);
+    expect(addressSchema.safeParse({ ...validAddress, area: "" }).success).toBe(false);
   });
 
   it("rejects an invalid phone", () => {
     expect(addressSchema.safeParse({ ...validAddress, phone: "abc!" }).success).toBe(false);
   });
 
-  it("treats blank optional fields as undefined", () => {
-    const r = addressSchema.safeParse({ ...validAddress, line2: "", area: "" });
+  it("treats blank line2 as undefined", () => {
+    const r = addressSchema.safeParse({ ...validAddress, line2: "" });
     expect(r.success).toBe(true);
-    if (r.success) {
-      expect(r.data.line2).toBeUndefined();
-      expect(r.data.area).toBeUndefined();
-    }
+    if (r.success) expect(r.data.line2).toBeUndefined();
   });
 });
 
