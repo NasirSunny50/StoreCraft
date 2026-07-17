@@ -5,7 +5,6 @@ import { placeGuestOrderAction, type PlaceOrderState } from "@/lib/actions/order
 import { previewCoupon } from "@/lib/actions/coupon";
 import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/ui/phone-input";
-import { PaymentRedirectOverlay } from "@/components/checkout/payment-redirect-overlay";
 import { BD_CITIES, areasForCity } from "@/lib/data/bd-locations";
 import type { SummaryView, DeliveryFees } from "@/components/checkout/checkout-form";
 
@@ -78,7 +77,6 @@ export function GuestCheckoutForm({
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_360px] lg:gap-6">
-      {redirecting && <PaymentRedirectOverlay />}
       {/* Left column */}
       <div className="space-y-4">
         <form id={FORM_ID} action={formAction} data-testid="guest-checkout-form" className="space-y-4">

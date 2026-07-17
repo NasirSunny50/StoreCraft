@@ -8,6 +8,13 @@ import { failOrderPaymentByNumber, markOrderPaid } from "@/lib/orders";
 import { notifyOrderPlaced, notifyOrderStatus } from "@/lib/notify-order";
 import { orderResultUrl } from "@/lib/order-result";
 import { siteUrl } from "@/lib/site-url";
+import {
+  paymentProcessingResponse,
+  FINALIZE_STEP,
+  FINALIZE_VALUE,
+} from "@/lib/payment/processing-page";
+
+const CANCEL_PATH = "/api/payment/sslcommerz/cancel";
 
 /**
  * Customer cancelled on the gateway. As with the fail callback, never trust the
@@ -23,6 +30,17 @@ export async function POST(req: Request) {
     const fields: Record<string, string> = {};
     for (const [k, v] of form.entries()) fields[k] = String(v);
     tranId = fields.tran_id ?? "";
+
+    // Step 1 — show the loader (re-checks payment state on finalize) instead of
+    // a blank tab while we query the gateway.
+    if (fields[FINALIZE_STEP] !== FINALIZE_VALUE) {
+      return paymentProcessingResponse({
+        actionUrl: CANCEL_PATH,
+        fields: { ...fields, [FINALIZE_STEP]: FINALIZE_VALUE },
+        title: "Finalizing your order",
+        subtitle: "One moment while we check your payment status.",
+      });
+    }
 
     if (tranId) {
       const tx = await sslcommerzTransactionStatus(tranId);
