@@ -5,6 +5,7 @@ import { placeOrderAction, type PlaceOrderState } from "@/lib/actions/order";
 import { previewCoupon } from "@/lib/actions/coupon";
 import { Button } from "@/components/ui/button";
 import { AddressForm } from "@/components/checkout/address-form";
+import { PaymentRedirectOverlay } from "@/components/checkout/payment-redirect-overlay";
 
 export type AddressView = {
   id: string;
@@ -96,6 +97,7 @@ export function CheckoutForm({
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_360px] lg:gap-6">
+      {redirecting && <PaymentRedirectOverlay />}
       {/* Left column */}
       <div className="space-y-4">
         <form id={FORM_ID} action={formAction} data-testid="checkout-form" className="space-y-4">

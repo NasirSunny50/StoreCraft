@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { retryOnlinePaymentAction } from "@/lib/actions/order";
 import { Button } from "@/components/ui/button";
+import { PaymentRedirectOverlay } from "@/components/checkout/payment-redirect-overlay";
 
 /** "Pay now" for an unpaid online order — re-opens the SSLCommerz gateway. */
 export function RetryPaymentButton({ orderId }: { orderId: string }) {
@@ -25,6 +26,7 @@ export function RetryPaymentButton({ orderId }: { orderId: string }) {
 
   return (
     <div className="flex flex-col gap-1">
+      {redirecting && <PaymentRedirectOverlay />}
       <Button
         type="button"
         variant="accent"
