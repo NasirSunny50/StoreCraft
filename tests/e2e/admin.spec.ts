@@ -94,6 +94,8 @@ test.describe("Admin catalog management", () => {
     // Soft-deleted products drop out of the default (non-deleted) admin list.
     await page.goto("/admin/products");
     await page.getByTestId("admin-product-row").filter({ hasText: name }).getByTestId("product-toggle-delete").click();
+    // Delete now asks for confirmation to guard against accidental clicks.
+    await page.getByTestId("product-delete-confirm-confirm").click();
     await expect(page.getByTestId("admin-product-row").filter({ hasText: name })).toHaveCount(0);
   });
 

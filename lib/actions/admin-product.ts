@@ -156,6 +156,18 @@ export async function softDeleteProduct(id: string): Promise<{ ok: boolean }> {
   return { ok: true };
 }
 
+/** Toggle a product's active/inactive state from the list (without opening it). */
+export async function setProductActive(id: string, isActive: boolean): Promise<{ ok: boolean }> {
+  await requireAdmin();
+  const p = await prisma.product.update({
+    where: { id },
+    data: { isActive },
+    select: { slug: true },
+  });
+  revalidateProduct(p.slug);
+  return { ok: true };
+}
+
 export async function restoreProduct(id: string): Promise<{ ok: boolean }> {
   await requireAdmin();
   await prisma.product.update({
