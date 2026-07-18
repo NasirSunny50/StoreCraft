@@ -220,32 +220,54 @@ export async function bulkUploadProducts(csvText: string): Promise<BulkUploadRes
       continue;
     }
     const d = parsed.data;
-    const categoryId = catBy.get(d.category.toLowerCase()) ?? catBy.get(slugify(d.category));
+    const category = d.Category;
+    const categoryId = catBy.get(category.toLowerCase()) ?? catBy.get(slugify(category));
     if (!categoryId) {
-      errors.push({ row: rowNo, message: `Unknown category "${d.category}"` });
+      errors.push({ row: rowNo, message: `Unknown category "${category}"` });
       continue;
     }
     let brandId: string | undefined;
-    if (d.brand) {
-      brandId = brandBy.get(d.brand.toLowerCase()) ?? brandBy.get(slugify(d.brand));
+    if (d.Brand) {
+      brandId = brandBy.get(d.Brand.toLowerCase()) ?? brandBy.get(slugify(d.Brand));
       if (!brandId) {
-        errors.push({ row: rowNo, message: `Unknown brand "${d.brand}"` });
+        errors.push({ row: rowNo, message: `Unknown brand "${d.Brand}"` });
         continue;
       }
     }
-    const slug = await uniqueProductSlug(d.name);
-    await prisma.product.create({
+
+    // Same mapping as the product form: on sale → charge Sale Price, keep
+    // Regular Price as the struck compare price; otherwise charge Regular Price.
+    const regular = d["Regular Price"];
+    const sale = d["Sale Price"];
+    const cost = d["Cost Price"] ?? 0;
+    const slug = await uniqueProductSlug(d.Name);
+
+    const product = await prisma.product.create({
       data: {
-        name: d.name,
+        name: d.Name,
         slug,
-        description: d.description,
-        price: new Prisma.Decimal(d.price),
-        comparePrice: d.comparePrice ? new Prisma.Decimal(d.comparePrice) : null,
-        stock: d.stock,
+        description: d.Description,
+        price: new Prisma.Decimal(sale ?? regular),
+        comparePrice: sale !== undefined ? new Prisma.Decimal(regular) : null,
+        costPrice: new Prisma.Decimal(cost),
+        stock: d.Stock,
         categoryId,
         brandId: brandId ?? null,
       },
     });
+
+    // Mirror single-product creation: seed cost/stock history for reports.
+    if (d.Stock > 0 || cost > 0) {
+      await prisma.stockLog.create({
+        data: {
+          productId: product.id,
+          change: d.Stock,
+          reason: "INITIAL",
+          unitCost: cost > 0 ? new Prisma.Decimal(cost) : null,
+          costAfter: cost > 0 ? new Prisma.Decimal(cost) : null,
+        },
+      });
+    }
     created += 1;
   }
 

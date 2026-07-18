@@ -8,7 +8,10 @@ export default async function ImportProductsPage() {
   await requireAdmin();
   return (
     <div>
-      <AdminPageHeader title="Bulk Import Products (CSV)" testId="admin-heading" />
+      <AdminPageHeader title="Import Products" testId="admin-heading" />
+      <p className="mb-4 max-w-3xl text-xs text-muted">
+        Add many products at once from a CSV file — download the template, fill it in, and upload.
+      </p>
       <CsvImport />
     </div>
   );

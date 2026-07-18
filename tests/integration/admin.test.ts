@@ -94,13 +94,26 @@ describe("product management", () => {
   });
 
   it("bulk import creates valid rows and reports bad ones", async () => {
-    const csv = `name,description,price,stock,category,brand,comparePrice
-CSV Good ${TAG},desc,1200,5,${categoryName},,
-CSV Bad ${TAG},desc,1300,5,NoSuchCategory ${TAG},,`;
+    const csv = `Name,Description,Regular Price,Sale Price,Cost Price,Stock,Category,Brand
+CSV Good ${TAG},desc,1200,,800,5,${categoryName},
+CSV Sale ${TAG},desc,2000,1500,900,3,${categoryName},
+CSV Bad ${TAG},desc,1300,,,5,NoSuchCategory ${TAG},`;
     const res = await bulkUploadProducts(csv);
-    expect(res.created).toBe(1);
+    expect(res.created).toBe(2);
     expect(res.errors).toHaveLength(1);
     expect(res.errors[0]?.message).toMatch(/Unknown category/);
+
+    // No sale → charge Regular Price, no struck price; Cost Price stored.
+    const good = await prisma.product.findFirst({ where: { name: `CSV Good ${TAG}` } });
+    expect(Number(good?.price)).toBe(1200);
+    expect(good?.comparePrice).toBeNull();
+    expect(Number(good?.costPrice)).toBe(800);
+
+    // On sale → charge Sale Price, keep Regular Price as the struck compare price.
+    const sale = await prisma.product.findFirst({ where: { name: `CSV Sale ${TAG}` } });
+    expect(Number(sale?.price)).toBe(1500);
+    expect(Number(sale?.comparePrice)).toBe(2000);
+    expect(Number(sale?.costPrice)).toBe(900);
   });
 });
 

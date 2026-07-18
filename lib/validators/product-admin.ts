@@ -55,13 +55,24 @@ export const productFormSchema = z.object({
 
 export type ProductFormInput = z.infer<typeof productFormSchema>;
 
-/** One CSV import row. Category/brand are resolved by name in the action. */
-export const csvProductRowSchema = z.object({
-  name: z.string().trim().min(2),
-  description: z.string().trim().min(1),
-  price: z.coerce.number().positive(),
-  stock: z.coerce.number().int().min(0),
-  category: z.string().trim().min(1),
-  brand: z.preprocess(emptyToUndef, z.string().trim().optional()),
-  comparePrice: z.preprocess(emptyToUndef, z.coerce.number().positive().optional()),
-});
+/**
+ * One CSV import row. Column headers mirror the "Add product" form's labels so
+ * the two stay consistent. Category/brand are resolved by name in the action.
+ * "Sale Price" (when given) is the discounted amount charged; "Regular Price"
+ * becomes the struck-through compare price. "Cost Price" is the buying price.
+ */
+export const csvProductRowSchema = z
+  .object({
+    Name: z.string().trim().min(2),
+    Description: z.string().trim().min(1),
+    "Regular Price": z.coerce.number().positive(),
+    "Sale Price": z.preprocess(emptyToUndef, z.coerce.number().positive().optional()),
+    "Cost Price": z.preprocess(emptyToUndef, z.coerce.number().min(0).optional()),
+    Stock: z.coerce.number().int().min(0),
+    Category: z.string().trim().min(1),
+    Brand: z.preprocess(emptyToUndef, z.string().trim().optional()),
+  })
+  .refine((d) => d["Sale Price"] === undefined || d["Sale Price"] < d["Regular Price"], {
+    message: "Sale Price must be less than Regular Price",
+    path: ["Sale Price"],
+  });
