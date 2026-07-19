@@ -97,6 +97,7 @@ type SalesItem = {
   cost: Prisma.Decimal; // snapshot unit cost at sale time
   categoryName: string;
   categorySlug: string;
+  brandName: string; // "No brand" when the product has no brand
 };
 
 async function fetchSalesItems(from?: Date, to?: Date): Promise<SalesItem[]> {
@@ -110,7 +111,13 @@ async function fetchSalesItems(from?: Date, to?: Date): Promise<SalesItem[]> {
       cost: true,
       quantity: true,
       order: { select: { status: true } },
-      product: { select: { name: true, category: { select: { name: true, slug: true } } } },
+      product: {
+        select: {
+          name: true,
+          category: { select: { name: true, slug: true } },
+          brand: { select: { name: true } },
+        },
+      },
     },
   });
   return rows.map((r) => ({
@@ -123,6 +130,7 @@ async function fetchSalesItems(from?: Date, to?: Date): Promise<SalesItem[]> {
     cost: r.cost,
     categoryName: r.product.category.name,
     categorySlug: r.product.category.slug,
+    brandName: r.product.brand?.name ?? "No brand",
   }));
 }
 
@@ -251,6 +259,167 @@ export async function getCategorySalesReport(
         case "profit": return b.profit.comparedTo(a.profit);
         case "margin": return b.margin - a.margin;
         default: return b.revenue.comparedTo(a.revenue);
+      }
+    });
+}
+
+// ---------- 5. Brand-wise Sales ----------
+export type BrandSort = "revenue" | "profit" | "units" | "margin";
+export type BrandSalesRow = {
+  brand: string;
+  orders: number; // distinct orders containing a product of this brand
+  unitsSold: number;
+  revenue: Prisma.Decimal;
+  profit: Prisma.Decimal;
+  margin: number; // profit / revenue (0..1)
+};
+
+/** Sales grouped by product brand — for brand performance & supplier talks. */
+export async function getBrandSalesReport(
+  from?: Date,
+  to?: Date,
+  opts: { sort?: BrandSort } = {},
+): Promise<BrandSalesRow[]> {
+  const items = (await fetchSalesItems(from, to)).filter((i) => !i.cancelled);
+  const map = new Map<
+    string,
+    { orders: Set<string>; unitsSold: number; revenue: Prisma.Decimal; cost: Prisma.Decimal }
+  >();
+
+  for (const it of items) {
+    let g = map.get(it.brandName);
+    if (!g) {
+      g = { orders: new Set(), unitsSold: 0, revenue: ZERO, cost: ZERO };
+      map.set(it.brandName, g);
+    }
+    g.orders.add(it.orderId);
+    g.unitsSold += it.quantity;
+    g.revenue = g.revenue.plus(it.price.times(it.quantity));
+    g.cost = g.cost.plus(it.cost.times(it.quantity));
+  }
+
+  return [...map.entries()]
+    .map(([brand, g]) => {
+      const profit = g.revenue.minus(g.cost);
+      return {
+        brand,
+        orders: g.orders.size,
+        unitsSold: g.unitsSold,
+        revenue: g.revenue,
+        profit,
+        margin: g.revenue.greaterThan(0) ? profit.div(g.revenue).toNumber() : 0,
+      };
+    })
+    .sort((a, b) => {
+      switch (opts.sort) {
+        case "profit": return b.profit.comparedTo(a.profit);
+        case "units": return b.unitsSold - a.unitsSold;
+        case "margin": return b.margin - a.margin;
+        default: return b.revenue.comparedTo(a.revenue);
+      }
+    });
+}
+
+// ---------- 6. Profit & Loss ----------
+export type ProfitLoss = {
+  grossRevenue: Prisma.Decimal; // merchandise before discount
+  productCost: Prisma.Decimal; // COGS (cost price × qty)
+  grossProfit: Prisma.Decimal; // grossRevenue − productCost
+  discounts: Prisma.Decimal; // order-level discounts given
+  shippingCollected: Prisma.Decimal; // shipping charged to customers (pass-through)
+  netProfit: Prisma.Decimal; // grossRevenue − productCost − discounts
+  netMargin: number; // netProfit / grossRevenue (0..1)
+  orders: number;
+  itemsSold: number;
+};
+
+/** Actual profitability, derived from the sales summary. */
+export async function getProfitLoss(from?: Date, to?: Date): Promise<ProfitLoss> {
+  const s = await getSalesSummary(from, to);
+  const netProfit = s.grossRevenue.minus(s.totalCost).minus(s.totalDiscount);
+  return {
+    grossRevenue: s.grossRevenue,
+    productCost: s.totalCost,
+    grossProfit: s.grossProfit,
+    discounts: s.totalDiscount,
+    shippingCollected: s.totalShipping,
+    netProfit,
+    netMargin: s.grossRevenue.greaterThan(0) ? netProfit.div(s.grossRevenue).toNumber() : 0,
+    orders: s.totalOrders,
+    itemsSold: s.itemsSold,
+  };
+}
+
+// ---------- 7. Customer Purchase ----------
+export type CustomerSort = "spend" | "orders" | "aov" | "recent";
+export type CustomerRow = {
+  name: string;
+  contact: string; // email or phone
+  guest: boolean;
+  totalOrders: number;
+  totalSpend: Prisma.Decimal; // sum of order totals (incl. shipping)
+  avgOrderValue: Prisma.Decimal;
+  firstPurchase: Date;
+  lastPurchase: Date;
+};
+
+/** Purchases grouped per customer — VIPs & lifetime value. Excludes cancelled. */
+export async function getCustomerPurchaseReport(
+  from?: Date,
+  to?: Date,
+  opts: { sort?: CustomerSort } = {},
+): Promise<CustomerRow[]> {
+  const orders = await prisma.order.findMany({
+    where: { status: { not: "CANCELLED" }, ...rangeWhere(from, to) },
+    select: {
+      userId: true,
+      guestEmail: true,
+      total: true,
+      createdAt: true,
+      user: { select: { name: true, email: true } },
+      address: { select: { fullName: true, phone: true } },
+    },
+  });
+
+  type Group = {
+    name: string;
+    contact: string;
+    guest: boolean;
+    totalOrders: number;
+    totalSpend: Prisma.Decimal;
+    firstPurchase: Date;
+    lastPurchase: Date;
+  };
+  const map = new Map<string, Group>();
+
+  for (const o of orders) {
+    const guest = !o.userId;
+    const key = o.userId ?? `guest:${o.guestEmail ?? o.address.phone}`;
+    const name = o.user?.name ?? o.address.fullName;
+    const contact = o.user?.email ?? o.guestEmail ?? o.address.phone;
+
+    let g = map.get(key);
+    if (!g) {
+      g = { name, contact, guest, totalOrders: 0, totalSpend: ZERO, firstPurchase: o.createdAt, lastPurchase: o.createdAt };
+      map.set(key, g);
+    }
+    g.totalOrders += 1;
+    g.totalSpend = g.totalSpend.plus(o.total);
+    if (o.createdAt < g.firstPurchase) g.firstPurchase = o.createdAt;
+    if (o.createdAt > g.lastPurchase) g.lastPurchase = o.createdAt;
+  }
+
+  return [...map.values()]
+    .map((g) => ({
+      ...g,
+      avgOrderValue: g.totalOrders > 0 ? g.totalSpend.div(g.totalOrders) : ZERO,
+    }))
+    .sort((a, b) => {
+      switch (opts.sort) {
+        case "orders": return b.totalOrders - a.totalOrders;
+        case "aov": return b.avgOrderValue.comparedTo(a.avgOrderValue);
+        case "recent": return b.lastPurchase.getTime() - a.lastPurchase.getTime();
+        default: return b.totalSpend.comparedTo(a.totalSpend);
       }
     });
 }

@@ -8,8 +8,13 @@ import {
   getSalesSummary,
   getProductSalesReport,
   getCategorySalesReport,
+  getBrandSalesReport,
+  getProfitLoss,
+  getCustomerPurchaseReport,
   type ProductSort,
   type CategorySort,
+  type BrandSort,
+  type CustomerSort,
 } from "@/lib/queries/admin-reports";
 import { getCategories, getProductOptions } from "@/lib/queries/product";
 import { getInventory } from "@/lib/queries/admin-misc";
@@ -28,6 +33,9 @@ const TABS = [
   { key: "summary", label: "Sales Summary" },
   { key: "products", label: "Product-wise" },
   { key: "categories", label: "Category-wise" },
+  { key: "brands", label: "Brand-wise" },
+  { key: "pnl", label: "Profit & Loss" },
+  { key: "customers", label: "Customers" },
   { key: "orders", label: "Orders" },
 ] as const;
 
@@ -44,6 +52,20 @@ const CATEGORY_SORTS = [
   { value: "revenue", label: "Revenue" },
   { value: "profit", label: "Profit" },
   { value: "margin", label: "Margin" },
+] as const;
+
+const BRAND_SORTS = [
+  { value: "revenue", label: "Revenue" },
+  { value: "profit", label: "Profit" },
+  { value: "units", label: "Units Sold" },
+  { value: "margin", label: "Margin" },
+] as const;
+
+const CUSTOMER_SORTS = [
+  { value: "spend", label: "Total Spend" },
+  { value: "orders", label: "Total Orders" },
+  { value: "aov", label: "Avg Order Value" },
+  { value: "recent", label: "Recent Purchase" },
 ] as const;
 
 const ORDER_STATUSES = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"] as const;
@@ -85,6 +107,14 @@ export default async function ReportsPage({
     report === "categories" && CATEGORY_SORTS.some((s) => s.value === sp.sort)
       ? (sp.sort as CategorySort)
       : undefined;
+  const brandSort =
+    report === "brands" && BRAND_SORTS.some((s) => s.value === sp.sort)
+      ? (sp.sort as BrandSort)
+      : undefined;
+  const customerSort =
+    report === "customers" && CUSTOMER_SORTS.some((s) => s.value === sp.sort)
+      ? (sp.sort as CustomerSort)
+      : undefined;
   const orderNo = report === "orders" ? sp.order?.trim() || undefined : undefined;
   const customer = report === "orders" ? sp.customer?.trim() || undefined : undefined;
   const status =
@@ -116,7 +146,7 @@ export default async function ReportsPage({
     report,
     cat,
     product,
-    sort: productSort ?? categorySort,
+    sort: productSort ?? categorySort ?? brandSort ?? customerSort,
     order: orderNo,
     customer,
     status,
@@ -130,7 +160,7 @@ export default async function ReportsPage({
           navigation (Clear, tab switch) remounts the uncontrolled inputs and
           they pick up the new defaults instead of keeping stale values. */}
       <form
-        key={`${report}|${from ?? ""}|${to ?? ""}|${cat ?? ""}|${productSort ?? categorySort ?? ""}|${product ?? ""}|${orderNo ?? ""}|${customer ?? ""}|${status ?? ""}`}
+        key={`${report}|${from ?? ""}|${to ?? ""}|${cat ?? ""}|${productSort ?? categorySort ?? brandSort ?? customerSort ?? ""}|${product ?? ""}|${orderNo ?? ""}|${customer ?? ""}|${status ?? ""}`}
         action="/admin/reports"
         className="flex flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:items-end"
       >
@@ -178,6 +208,24 @@ export default async function ReportsPage({
               ))}
             </FilterSelect>
           </>
+        )}
+
+        {/* Brand-wise: sort */}
+        {report === "brands" && (
+          <FilterSelect name="sort" label="Sort by" defaultValue={brandSort ?? "revenue"} testId="filter-sort">
+            {BRAND_SORTS.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </FilterSelect>
+        )}
+
+        {/* Customers: sort */}
+        {report === "customers" && (
+          <FilterSelect name="sort" label="Sort by" defaultValue={customerSort ?? "spend"} testId="filter-sort">
+            {CUSTOMER_SORTS.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </FilterSelect>
         )}
 
         {/* Orders: order # + customer + status */}
@@ -243,8 +291,11 @@ export default async function ReportsPage({
       </div>
 
       {report === "summary" && <SummaryReport from={fromDate} to={toDate} />}
-      {report === "products" && <ProductReport from={fromDate} to={toDate} categorySlug={cat} productId={product} sort={productSort} />}
-      {report === "categories" && <CategoryReport from={fromDate} to={toDate} categorySlug={cat} sort={categorySort} />}
+      {report === "products" && <ProductReport from={fromDate} to={toDate} categorySlug={cat} productId={product} sort={productSort} sp={sp} />}
+      {report === "categories" && <CategoryReport from={fromDate} to={toDate} categorySlug={cat} sort={categorySort} sp={sp} />}
+      {report === "brands" && <BrandReport from={fromDate} to={toDate} sort={brandSort} sp={sp} />}
+      {report === "pnl" && <ProfitLossReport from={fromDate} to={toDate} />}
+      {report === "customers" && <CustomerReport from={fromDate} to={toDate} sort={customerSort} sp={sp} />}
       {report === "orders" && <OrdersReport from={fromDate} to={toDate} status={status} orderNumber={orderNo} customer={customer} sp={sp} />}
     </div>
   );
@@ -252,6 +303,14 @@ export default async function ReportsPage({
 
 const maxBy = <T,>(arr: T[], f: (x: T) => number): T | undefined =>
   arr.reduce<T | undefined>((best, x) => (best === undefined || f(x) > f(best) ? x : best), undefined);
+
+type PageSp = { page?: string; perPage?: string };
+
+/** Slice a fully-computed report list for the current page. */
+function withPage<T>(all: T[], sp: PageSp) {
+  const { page, perPage, skip, take } = parsePageParams(sp);
+  return { rows: all.slice(skip, skip + take), page, perPage, total: all.length };
+}
 
 // ---------- 1. Sales Summary ----------
 async function SummaryReport({ from, to }: { from?: Date; to?: Date }) {
@@ -319,53 +378,173 @@ async function ProductReport({
   categorySlug,
   productId,
   sort,
+  sp,
 }: {
   from?: Date;
   to?: Date;
   categorySlug?: string;
   productId?: string;
   sort?: ProductSort;
+  sp: PageSp;
 }) {
-  const rows = await getProductSalesReport(from, to, { categorySlug, productId, sort });
+  const all = await getProductSalesReport(from, to, { categorySlug, productId, sort });
+  const { rows, page, perPage, total } = withPage(all, sp);
   return (
-    <ReportTable
-      testId="report-products"
-      head={["Product", "Category", "Qty Sold", "Revenue", "Profit", "Margin", "Cancellation"]}
-      empty="No product sales in range."
-      rows={rows.map((r) => (
-        <tr key={r.productId} className="bg-surface">
-          <td className="px-3 py-2 font-medium">{r.name}</td>
-          <td className="px-3 py-2 text-muted">{r.category}</td>
-          <td className="px-3 py-2">{r.soldQty}</td>
-          <td className="px-3 py-2 font-medium text-accent">{formatBDT(r.revenue)}</td>
-          <td className={cn("px-3 py-2 font-medium", r.profit.isNegative() ? "text-red-600" : "text-green-600")}>{formatBDT(r.profit)}</td>
-          <td className={cn("px-3 py-2 font-medium", r.margin < 0 ? "text-red-600" : "text-green-600")}>{pct(r.margin)}</td>
-          <td className="px-3 py-2 text-muted">{pct(r.cancellationRate)}</td>
-        </tr>
-      ))}
-    />
+    <div className="space-y-3">
+      <ReportTable
+        testId="report-products"
+        head={["Product", "Category", "Qty Sold", "Revenue", "Profit", "Margin", "Cancellation"]}
+        empty="No product sales in range."
+        rows={rows.map((r) => (
+          <tr key={r.productId} className="bg-surface">
+            <td className="px-3 py-2 font-medium">{r.name}</td>
+            <td className="px-3 py-2 text-muted">{r.category}</td>
+            <td className="px-3 py-2">{r.soldQty}</td>
+            <td className="px-3 py-2 font-medium text-accent">{formatBDT(r.revenue)}</td>
+            <td className={cn("px-3 py-2 font-medium", r.profit.isNegative() ? "text-red-600" : "text-green-600")}>{formatBDT(r.profit)}</td>
+            <td className={cn("px-3 py-2 font-medium", r.margin < 0 ? "text-red-600" : "text-green-600")}>{pct(r.margin)}</td>
+            <td className="px-3 py-2 text-muted">{pct(r.cancellationRate)}</td>
+          </tr>
+        ))}
+      />
+      <AdminPagination total={total} page={page} perPage={perPage} />
+    </div>
   );
 }
 
 // ---------- 3. Category-wise ----------
-async function CategoryReport({ from, to, categorySlug, sort }: { from?: Date; to?: Date; categorySlug?: string; sort?: CategorySort }) {
-  const rows = await getCategorySalesReport(from, to, { categorySlug, sort });
+async function CategoryReport({ from, to, categorySlug, sort, sp }: { from?: Date; to?: Date; categorySlug?: string; sort?: CategorySort; sp: PageSp }) {
+  const all = await getCategorySalesReport(from, to, { categorySlug, sort });
+  const { rows, page, perPage, total } = withPage(all, sp);
   return (
-    <ReportTable
-      testId="report-categories"
-      head={["Category", "Orders", "Items Sold", "Revenue", "Profit", "Margin"]}
-      empty="No category sales in range."
-      rows={rows.map((r) => (
-        <tr key={r.category} className="bg-surface">
-          <td className="px-3 py-2 font-medium">{r.category}</td>
-          <td className="px-3 py-2">{r.orders}</td>
-          <td className="px-3 py-2">{r.itemsSold}</td>
-          <td className="px-3 py-2 font-medium text-accent">{formatBDT(r.revenue)}</td>
-          <td className={cn("px-3 py-2 font-medium", r.profit.isNegative() ? "text-red-600" : "text-green-600")}>{formatBDT(r.profit)}</td>
-          <td className={cn("px-3 py-2 font-medium", r.margin < 0 ? "text-red-600" : "text-green-600")}>{pct(r.margin)}</td>
-        </tr>
-      ))}
-    />
+    <div className="space-y-3">
+      <ReportTable
+        testId="report-categories"
+        head={["Category", "Orders", "Items Sold", "Revenue", "Profit", "Margin"]}
+        empty="No category sales in range."
+        rows={rows.map((r) => (
+          <tr key={r.category} className="bg-surface">
+            <td className="px-3 py-2 font-medium">{r.category}</td>
+            <td className="px-3 py-2">{r.orders}</td>
+            <td className="px-3 py-2">{r.itemsSold}</td>
+            <td className="px-3 py-2 font-medium text-accent">{formatBDT(r.revenue)}</td>
+            <td className={cn("px-3 py-2 font-medium", r.profit.isNegative() ? "text-red-600" : "text-green-600")}>{formatBDT(r.profit)}</td>
+            <td className={cn("px-3 py-2 font-medium", r.margin < 0 ? "text-red-600" : "text-green-600")}>{pct(r.margin)}</td>
+          </tr>
+        ))}
+      />
+      <AdminPagination total={total} page={page} perPage={perPage} />
+    </div>
+  );
+}
+
+// ---------- Brand-wise ----------
+async function BrandReport({ from, to, sort, sp }: { from?: Date; to?: Date; sort?: BrandSort; sp: PageSp }) {
+  const all = await getBrandSalesReport(from, to, { sort });
+  const { rows, page, perPage, total } = withPage(all, sp);
+  return (
+    <div className="space-y-3">
+      <ReportTable
+        testId="report-brands"
+        head={["Brand", "Orders", "Units Sold", "Revenue", "Profit", "Margin"]}
+        empty="No brand sales in range."
+        rows={rows.map((r) => (
+          <tr key={r.brand} className="bg-surface">
+            <td className="px-3 py-2 font-medium">{r.brand}</td>
+            <td className="px-3 py-2">{r.orders}</td>
+            <td className="px-3 py-2">{r.unitsSold}</td>
+            <td className="px-3 py-2 font-medium text-accent">{formatBDT(r.revenue)}</td>
+            <td className={cn("px-3 py-2 font-medium", r.profit.isNegative() ? "text-red-600" : "text-green-600")}>{formatBDT(r.profit)}</td>
+            <td className={cn("px-3 py-2 font-medium", r.margin < 0 ? "text-red-600" : "text-green-600")}>{pct(r.margin)}</td>
+          </tr>
+        ))}
+      />
+      <AdminPagination total={total} page={page} perPage={perPage} />
+    </div>
+  );
+}
+
+// ---------- Profit & Loss ----------
+async function ProfitLossReport({ from, to }: { from?: Date; to?: Date }) {
+  const p = await getProfitLoss(from, to);
+  const lines: { label: string; value: string; tone?: "add" | "sub" | "total" }[] = [
+    { label: "Gross Revenue", value: formatBDT(p.grossRevenue) },
+    { label: "− Cost of Goods (product cost)", value: formatBDT(p.productCost), tone: "sub" },
+    { label: "= Gross Profit", value: formatBDT(p.grossProfit), tone: "total" },
+    { label: "− Discounts given", value: formatBDT(p.discounts), tone: "sub" },
+    { label: "= Net Profit", value: formatBDT(p.netProfit), tone: "total" },
+  ];
+
+  return (
+    <div className="space-y-4" data-testid="report-pnl">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Kpi label="Gross Revenue" value={formatBDT(p.grossRevenue)} tone="accent" />
+        <Kpi label="Net Profit" value={formatBDT(p.netProfit)} tone="profit" testId="pnl-net" />
+        <Kpi label="Net Margin" value={pct(p.netMargin)} tone="profit" />
+        <Kpi label="Orders" value={String(p.orders)} />
+      </div>
+
+      <div className="overflow-hidden rounded-lg border border-hairline bg-surface">
+        <table className="w-full text-sm">
+          <tbody className="divide-y divide-hairline">
+            {lines.map((l) => (
+              <tr key={l.label} className={l.tone === "total" ? "bg-surface-2" : ""}>
+                <td className={cn("px-4 py-2.5", l.tone === "total" ? "font-bold text-ink" : "text-muted")}>{l.label}</td>
+                <td
+                  className={cn(
+                    "px-4 py-2.5 text-right font-semibold tabular-nums",
+                    l.tone === "sub" ? "text-red-600" : l.tone === "total" ? "text-ink" : "text-ink",
+                  )}
+                >
+                  {l.tone === "sub" ? `(${l.value})` : l.value}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+        <Stat label="Items sold" value={String(p.itemsSold)} />
+        <Stat label="Shipping collected" value={formatBDT(p.shippingCollected)} />
+        <Stat label="Net margin" value={pct(p.netMargin)} />
+      </div>
+
+      <p className="text-xs text-muted">
+        <strong>Net Profit</strong> = Gross Revenue − Product Cost (COGS) − Discounts. Excludes cancelled
+        orders. Shipping is collected from customers and typically passed to the courier, so it&apos;s shown
+        separately rather than as profit.
+      </p>
+    </div>
+  );
+}
+
+// ---------- Customer Purchase ----------
+async function CustomerReport({ from, to, sort, sp }: { from?: Date; to?: Date; sort?: CustomerSort; sp: PageSp }) {
+  const all = await getCustomerPurchaseReport(from, to, { sort });
+  const { rows, page, perPage, total } = withPage(all, sp);
+  return (
+    <div className="space-y-3">
+      <ReportTable
+        testId="report-customers"
+        head={["Customer", "Contact", "Orders", "Total Spend", "Avg Order", "Last Purchase"]}
+        empty="No customer purchases in range."
+        rows={rows.map((r, i) => (
+          <tr key={`${r.name}-${r.contact}-${i}`} className="bg-surface">
+            <td className="px-3 py-2 font-medium">
+              {r.name}
+              {r.guest && <span className="ml-1 text-[10px] font-normal text-muted">(Guest)</span>}
+            </td>
+            <td className="px-3 py-2 text-muted">{r.contact}</td>
+            <td className="px-3 py-2">{r.totalOrders}</td>
+            <td className="px-3 py-2 font-medium text-accent">{formatBDT(r.totalSpend)}</td>
+            <td className="px-3 py-2">{formatBDT(r.avgOrderValue)}</td>
+            <td className="px-3 py-2 text-muted">{formatDate(r.lastPurchase)}</td>
+          </tr>
+        ))}
+      />
+      <AdminPagination total={total} page={page} perPage={perPage} />
+    </div>
   );
 }
 

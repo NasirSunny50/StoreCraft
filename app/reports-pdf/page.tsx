@@ -6,8 +6,13 @@ import {
   getSalesSummary,
   getProductSalesReport,
   getCategorySalesReport,
+  getBrandSalesReport,
+  getProfitLoss,
+  getCustomerPurchaseReport,
   type ProductSort,
   type CategorySort,
+  type BrandSort,
+  type CustomerSort,
 } from "@/lib/queries/admin-reports";
 import { formatBDT } from "@/lib/utils/money";
 import { formatDate } from "@/lib/utils/date";
@@ -19,6 +24,9 @@ const TITLES: Record<string, string> = {
   summary: "Sales Summary Report",
   products: "Product-wise Sales Report",
   categories: "Category-wise Sales Report",
+  brands: "Brand-wise Sales Report",
+  pnl: "Profit & Loss Report",
+  customers: "Customer Purchase Report",
   orders: "Orders Report",
 };
 
@@ -26,6 +34,8 @@ const pct = (r: number) => `${(r * 100).toFixed(1)}%`;
 
 const PRODUCT_SORTS = ["revenue", "profit", "margin", "qty"] as const;
 const CATEGORY_SORTS = ["revenue", "profit", "margin"] as const;
+const BRAND_SORTS = ["revenue", "profit", "units", "margin"] as const;
+const CUSTOMER_SORTS = ["spend", "orders", "aov", "recent"] as const;
 const ORDER_STATUSES = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"] as const;
 
 export default async function ReportsPdfPage({
@@ -55,6 +65,8 @@ export default async function ReportsPdfPage({
   const customer = sp.customer?.trim() || undefined;
   const productSort = has(PRODUCT_SORTS, sp.sort) ? (sp.sort as ProductSort) : undefined;
   const categorySort = has(CATEGORY_SORTS, sp.sort) ? (sp.sort as CategorySort) : undefined;
+  const brandSort = has(BRAND_SORTS, sp.sort) ? (sp.sort as BrandSort) : undefined;
+  const customerSort = has(CUSTOMER_SORTS, sp.sort) ? (sp.sort as CustomerSort) : undefined;
   const status = has(ORDER_STATUSES, sp.status) ? (sp.status as OrderStatus) : undefined;
   const b = await getBranding();
 
@@ -63,51 +75,95 @@ export default async function ReportsPdfPage({
       ? `${sp.from ? formatDate(sp.from) : "Beginning"} — ${sp.to ? formatDate(sp.to) : "Today"}`
       : "All time";
 
+  // Same report params → CSV export link for the "Download CSV" button.
+  const csvParams = new URLSearchParams();
+  csvParams.set("report", report);
+  if (sp.from) csvParams.set("from", sp.from);
+  if (sp.to) csvParams.set("to", sp.to);
+  if (cat) csvParams.set("cat", cat);
+  if (product) csvParams.set("product", product);
+  if (sp.sort) csvParams.set("sort", sp.sort);
+  if (orderNo) csvParams.set("order", orderNo);
+  if (customer) csvParams.set("customer", customer);
+  if (status) csvParams.set("status", status);
+  const csvHref = `/api/admin/reports/sales.csv?${csvParams.toString()}`;
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 text-ink print:max-w-none print:p-0">
-      <PrintControls />
+      {/* Header lives in <thead>, footer in <tfoot> — browsers repeat those on
+          every printed page, so multi-page PDFs keep the header & footer. */}
+      <style>{`
+        @media print {
+          @page { margin: 1.2cm; }
+          thead { display: table-header-group; }
+          tfoot { display: table-footer-group; }
+        }
+      `}</style>
 
-      <article className="report-doc overflow-hidden rounded-xl border border-hairline bg-surface shadow-card print:rounded-none print:border-0 print:shadow-none">
-        {/* ---------- Header ---------- */}
-        <header className="border-b-4 border-accent bg-surface px-6 py-5 sm:px-8">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="text-2xl font-extrabold tracking-tight text-accent">{b.shopName}</div>
-              {b.tagline && <p className="text-xs text-muted">{b.tagline}</p>}
-              <p className="mt-1 text-[11px] text-muted">
-                {[b.hotline && `Hotline ${b.hotline}`, b.contactEmail].filter(Boolean).join("  ·  ")}
-              </p>
-            </div>
-            <div className="text-right">
-              <span className="inline-block rounded bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-accent">
-                Business Report
-              </span>
-              <h1 className="mt-1.5 text-lg font-bold text-ink sm:text-xl">{TITLES[report]}</h1>
-              <p className="text-xs text-muted">Period: {rangeLabel}</p>
-              <p className="text-[11px] text-muted">Generated: {new Date().toLocaleString()}</p>
-            </div>
-          </div>
-        </header>
+      <PrintControls csvHref={csvHref} />
+
+      <table className="report-doc w-full border-collapse overflow-hidden rounded-xl border border-hairline bg-surface shadow-card print:rounded-none print:border-0 print:shadow-none">
+        {/* ---------- Header (repeats every printed page) ---------- */}
+        <thead>
+          <tr>
+            <td className="p-0">
+              <div className="border-b-4 border-accent bg-surface px-6 py-5 sm:px-8">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <div className="text-2xl font-extrabold tracking-tight text-accent">{b.shopName}</div>
+                    {b.tagline && <p className="text-xs text-muted">{b.tagline}</p>}
+                    <p className="mt-1 text-[11px] text-muted">
+                      {[b.hotline && `Hotline ${b.hotline}`, b.contactEmail].filter(Boolean).join("  ·  ")}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-block rounded bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-accent">
+                      Business Report
+                    </span>
+                    <h1 className="mt-1.5 text-lg font-bold text-ink sm:text-xl">{TITLES[report]}</h1>
+                    <p className="text-xs text-muted">Period: {rangeLabel}</p>
+                    <p className="text-[11px] text-muted">Generated: {new Date().toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </thead>
+
+        {/* ---------- Footer (repeats every printed page) ---------- */}
+        <tfoot>
+          <tr>
+            <td className="p-0">
+              <div className="border-t border-hairline bg-surface-2 px-6 py-3 text-[10px] text-muted sm:px-8 print:bg-transparent">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    {b.shopName}
+                    {b.address ? ` · ${b.address}` : ""}
+                  </span>
+                  <span className="font-medium">Confidential — for internal business use only</span>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tfoot>
 
         {/* ---------- Body ---------- */}
-        <main className="space-y-5 px-6 py-6 sm:px-8">
-          {report === "summary" && <SummaryPdf from={from} to={to} />}
-          {report === "products" && <ProductsPdf from={from} to={to} categorySlug={cat} productId={product} sort={productSort} />}
-          {report === "categories" && <CategoriesPdf from={from} to={to} categorySlug={cat} sort={categorySort} />}
-          {report === "orders" && <OrdersPdf from={from} to={to} status={status} orderNumber={orderNo} customer={customer} />}
-        </main>
-
-        {/* ---------- Footer ---------- */}
-        <footer className="border-t border-hairline bg-surface-2 px-6 py-3 text-[10px] text-muted sm:px-8 print:bg-transparent">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span>
-              {b.shopName}
-              {b.address ? ` · ${b.address}` : ""}
-            </span>
-            <span className="font-medium">Confidential — for internal business use only</span>
-          </div>
-        </footer>
-      </article>
+        <tbody>
+          <tr>
+            <td className="p-0">
+              <div className="space-y-5 px-6 py-6 sm:px-8">
+                {report === "summary" && <SummaryPdf from={from} to={to} />}
+                {report === "products" && <ProductsPdf from={from} to={to} categorySlug={cat} productId={product} sort={productSort} />}
+                {report === "categories" && <CategoriesPdf from={from} to={to} categorySlug={cat} sort={categorySort} />}
+                {report === "brands" && <BrandsPdf from={from} to={to} sort={brandSort} />}
+                {report === "pnl" && <ProfitLossPdf from={from} to={to} />}
+                {report === "customers" && <CustomersPdf from={from} to={to} sort={customerSort} />}
+                {report === "orders" && <OrdersPdf from={from} to={to} status={status} orderNumber={orderNo} customer={customer} />}
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -251,6 +307,115 @@ async function CategoriesPdf({ from, to, categorySlug, sort }: { from?: Date; to
             </tr>
           ))}
           {rows.length === 0 && <tr><td className={`${td} text-center text-muted`} colSpan={6}>No category sales in range.</td></tr>}
+        </tbody>
+      </table>
+    </Scroll>
+  );
+}
+
+// ---------- Brands ----------
+async function BrandsPdf({ from, to, sort }: { from?: Date; to?: Date; sort?: BrandSort }) {
+  const rows = await getBrandSalesReport(from, to, { sort });
+  return (
+    <Scroll>
+      <table className="w-full min-w-[480px] border-collapse">
+        <thead>
+          <tr>
+            <th className={th}>Brand</th>
+            <th className={thNum}>Orders</th>
+            <th className={thNum}>Units Sold</th>
+            <th className={thNum}>Revenue</th>
+            <th className={thNum}>Profit</th>
+            <th className={thNum}>Margin</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={r.brand} className={i % 2 ? "bg-surface-2" : ""}>
+              <td className={`${td} font-medium`}>{r.brand}</td>
+              <td className={tdNum}>{r.orders}</td>
+              <td className={tdNum}>{r.unitsSold}</td>
+              <td className={`${tdNum} font-semibold`}>{formatBDT(r.revenue)}</td>
+              <td className={tdNum}>{formatBDT(r.profit)}</td>
+              <td className={tdNum}>{pct(r.margin)}</td>
+            </tr>
+          ))}
+          {rows.length === 0 && <tr><td className={`${td} text-center text-muted`} colSpan={6}>No brand sales in range.</td></tr>}
+        </tbody>
+      </table>
+    </Scroll>
+  );
+}
+
+// ---------- Profit & Loss ----------
+async function ProfitLossPdf({ from, to }: { from?: Date; to?: Date }) {
+  const p = await getProfitLoss(from, to);
+  const lines: [string, string, boolean?][] = [
+    ["Gross Revenue", formatBDT(p.grossRevenue)],
+    ["Less: Cost of Goods (product cost)", formatBDT(p.productCost)],
+    ["Gross Profit", formatBDT(p.grossProfit), true],
+    ["Less: Discounts given", formatBDT(p.discounts)],
+    ["Net Profit", formatBDT(p.netProfit), true],
+  ];
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-3">
+        <Hero label="Gross Revenue" value={formatBDT(p.grossRevenue)} />
+        <Hero label="Net Profit" value={formatBDT(p.netProfit)} />
+        <Hero label="Net Margin" value={pct(p.netMargin)} />
+      </div>
+      <Scroll>
+        <table className="w-full border-collapse">
+          <tbody>
+            {lines.map(([k, v, strong]) => (
+              <tr key={k} className={strong ? "bg-surface-2" : ""}>
+                <td className={`${td} ${strong ? "font-bold text-ink" : "font-medium text-muted"}`}>{k}</td>
+                <td className={`${tdNum} font-semibold text-ink`}>{v}</td>
+              </tr>
+            ))}
+            <tr>
+              <td className={`${td} font-medium text-muted`}>Shipping collected (pass-through)</td>
+              <td className={`${tdNum} text-ink`}>{formatBDT(p.shippingCollected)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </Scroll>
+      <Note>
+        Net Profit = Gross Revenue − Product Cost (COGS) − Discounts. Excludes cancelled orders. Shipping is
+        collected from customers and typically passed to the courier, so it is shown separately.
+      </Note>
+    </>
+  );
+}
+
+// ---------- Customers ----------
+async function CustomersPdf({ from, to, sort }: { from?: Date; to?: Date; sort?: CustomerSort }) {
+  const rows = await getCustomerPurchaseReport(from, to, { sort });
+  return (
+    <Scroll>
+      <table className="w-full min-w-[620px] border-collapse">
+        <thead>
+          <tr>
+            <th className={th}>Customer</th>
+            <th className={th}>Contact</th>
+            <th className={thNum}>Orders</th>
+            <th className={thNum}>Total Spend</th>
+            <th className={thNum}>Avg Order</th>
+            <th className={th}>Last Purchase</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={`${r.name}-${r.contact}-${i}`} className={i % 2 ? "bg-surface-2" : ""}>
+              <td className={`${td} font-medium`}>{r.name}{r.guest ? " (Guest)" : ""}</td>
+              <td className={`${td} text-muted`}>{r.contact}</td>
+              <td className={tdNum}>{r.totalOrders}</td>
+              <td className={`${tdNum} font-semibold`}>{formatBDT(r.totalSpend)}</td>
+              <td className={tdNum}>{formatBDT(r.avgOrderValue)}</td>
+              <td className={`${td} text-muted`}>{formatDate(r.lastPurchase)}</td>
+            </tr>
+          ))}
+          {rows.length === 0 && <tr><td className={`${td} text-center text-muted`} colSpan={6}>No customer purchases in range.</td></tr>}
         </tbody>
       </table>
     </Scroll>

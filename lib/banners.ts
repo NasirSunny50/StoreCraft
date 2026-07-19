@@ -49,22 +49,30 @@ function normalizeList(v: unknown): Banner[] {
   return v.map(normalizeBanner).filter((b): b is Banner => b !== null);
 }
 
+/**
+ * Coerce a stored JSON value into a clean BannerSet. Handles the current object
+ * shape, the older plain-array format (main banners only), and junk — dropping
+ * entries without an image. Pure, so it can be unit-tested directly.
+ */
+export function normalizeBannerSet(saved: unknown): BannerSet {
+  // Backward-compat: an older format stored a plain array of main banners.
+  if (Array.isArray(saved)) {
+    return { main: normalizeList(saved), sideTop: null, sideBottom: null };
+  }
+  const rec = (saved ?? {}) as Record<string, unknown>;
+  return {
+    main: normalizeList(rec.main),
+    sideTop: normalizeBanner(rec.sideTop),
+    sideBottom: normalizeBanner(rec.sideBottom),
+  };
+}
+
 /** Configured banner set. Request-cached (dedup per render). */
 export const getBannerSet = cache(async (): Promise<BannerSet> => {
   try {
     const row = await prisma.setting.findUnique({ where: { key: BANNERS_KEY } });
     if (!row) return EMPTY_BANNER_SET;
-    const saved = JSON.parse(row.value) as unknown;
-    // Backward-compat: an older format stored a plain array of main banners.
-    if (Array.isArray(saved)) {
-      return { main: normalizeList(saved), sideTop: null, sideBottom: null };
-    }
-    const rec = (saved ?? {}) as Record<string, unknown>;
-    return {
-      main: normalizeList(rec.main),
-      sideTop: normalizeBanner(rec.sideTop),
-      sideBottom: normalizeBanner(rec.sideBottom),
-    };
+    return normalizeBannerSet(JSON.parse(row.value));
   } catch {
     // Never let a banner read break the homepage — fall back to none.
     return EMPTY_BANNER_SET;

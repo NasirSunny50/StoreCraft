@@ -8,7 +8,8 @@ vi.mock("@/lib/auth", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
-import { createProduct, softDeleteProduct, bulkUploadProducts } from "@/lib/actions/admin-product";
+import { createProduct, softDeleteProduct, restoreProduct, setProductActive, bulkUploadProducts } from "@/lib/actions/admin-product";
+import { getAdminProducts, getDeletedProductCount } from "@/lib/queries/admin-product";
 import { adjustStock } from "@/lib/actions/admin-inventory";
 import { updateOrderStatus } from "@/lib/actions/admin-order";
 import { createCoupon } from "@/lib/actions/admin-coupon";
@@ -114,6 +115,35 @@ CSV Bad ${TAG},desc,1300,,,5,NoSuchCategory ${TAG},`;
     expect(Number(sale?.price)).toBe(1500);
     expect(Number(sale?.comparePrice)).toBe(2000);
     expect(Number(sale?.costPrice)).toBe(900);
+  });
+
+  it("toggles a product's active state from the list", async () => {
+    const res = await createProduct({ ...baseProduct, name: `Toggle ${TAG}`, price: 500, stock: 1, categoryId });
+    const id = res.ok ? res.id : "";
+    await setProductActive(id, false);
+    expect((await prisma.product.findUnique({ where: { id } }))?.isActive).toBe(false);
+    await setProductActive(id, true);
+    expect((await prisma.product.findUnique({ where: { id } }))?.isActive).toBe(true);
+  });
+
+  it("separates active and deleted views and counts deleted", async () => {
+    const res = await createProduct({ ...baseProduct, name: `View ${TAG}`, price: 500, stock: 1, categoryId });
+    const id = res.ok ? res.id : "";
+    const q = `View ${TAG}`;
+
+    expect((await getAdminProducts({ q, view: "active" })).items.some((p) => p.id === id)).toBe(true);
+    expect((await getAdminProducts({ q, view: "deleted" })).items.some((p) => p.id === id)).toBe(false);
+
+    const before = await getDeletedProductCount();
+    await softDeleteProduct(id);
+    expect(await getDeletedProductCount()).toBe(before + 1);
+
+    expect((await getAdminProducts({ q, view: "active" })).items.some((p) => p.id === id)).toBe(false);
+    expect((await getAdminProducts({ q, view: "deleted" })).items.some((p) => p.id === id)).toBe(true);
+
+    // Restore returns it to the active view.
+    await restoreProduct(id);
+    expect((await getAdminProducts({ q, view: "active" })).items.some((p) => p.id === id)).toBe(true);
   });
 });
 
