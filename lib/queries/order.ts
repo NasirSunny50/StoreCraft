@@ -34,6 +34,24 @@ export async function getUserOrders(
   return { items, nextCursor: hasMore ? items[items.length - 1]!.id : null };
 }
 
+/** Offset-paginated order history for a user (newest first) — for numbered pages. */
+export async function getUserOrdersPage(
+  userId: string,
+  opts: { skip?: number; take?: number } = {},
+): Promise<{ items: OrderWithDetails[]; total: number }> {
+  const [items, total] = await Promise.all([
+    prisma.order.findMany({
+      where: { userId },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: opts.skip,
+      take: opts.take,
+      include: orderInclude,
+    }),
+    prisma.order.count({ where: { userId } }),
+  ]);
+  return { items, total };
+}
+
 /** Fetch one order by its human number, scoped to the owner. */
 export async function getOrderByNumberForUser(
   userId: string,

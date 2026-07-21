@@ -1,21 +1,24 @@
 import Link from "next/link";
 import { ChevronRight, PackageOpen } from "lucide-react";
 import { requireAuth } from "@/lib/auth-guard";
-import { getUserOrders } from "@/lib/queries/order";
+import { getUserOrdersPage } from "@/lib/queries/order";
 import { paymentMethodLabel } from "@/lib/order-math";
 import { formatBDT } from "@/lib/utils/money";
 import { OrderStatusBadge } from "@/components/order/order-status-badge";
+import { AdminPagination } from "@/components/admin/admin-pagination";
+import { parsePageParams } from "@/lib/pagination";
 
 export const metadata = { title: "My Orders" };
 
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ cursor?: string }>;
+  searchParams: Promise<{ page?: string; perPage?: string }>;
 }) {
   const session = await requireAuth();
-  const { cursor } = await searchParams;
-  const { items, nextCursor } = await getUserOrders(session.user.id, cursor);
+  const sp = await searchParams;
+  const { page, perPage, skip, take } = parsePageParams(sp);
+  const { items, total } = await getUserOrdersPage(session.user.id, { skip, take });
 
   return (
     <div>
@@ -65,16 +68,7 @@ export default async function OrdersPage({
             </Link>
           ))}
 
-          {nextCursor && (
-            <div className="pt-2 text-center">
-              <Link
-                href={`/orders?cursor=${nextCursor}`}
-                className="inline-block rounded-full border border-accent px-8 py-2 text-sm font-medium text-accent hover:bg-accent hover:text-white"
-              >
-                Older orders
-              </Link>
-            </div>
-          )}
+          <AdminPagination total={total} page={page} perPage={perPage} />
         </div>
       )}
     </div>
