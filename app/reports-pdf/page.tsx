@@ -75,19 +75,6 @@ export default async function ReportsPdfPage({
       ? `${sp.from ? formatDate(sp.from) : "Beginning"} — ${sp.to ? formatDate(sp.to) : "Today"}`
       : "All time";
 
-  // Same report params → CSV export link for the "Download CSV" button.
-  const csvParams = new URLSearchParams();
-  csvParams.set("report", report);
-  if (sp.from) csvParams.set("from", sp.from);
-  if (sp.to) csvParams.set("to", sp.to);
-  if (cat) csvParams.set("cat", cat);
-  if (product) csvParams.set("product", product);
-  if (sp.sort) csvParams.set("sort", sp.sort);
-  if (orderNo) csvParams.set("order", orderNo);
-  if (customer) csvParams.set("customer", customer);
-  if (status) csvParams.set("status", status);
-  const csvHref = `/api/admin/reports/sales.csv?${csvParams.toString()}`;
-
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 text-ink print:max-w-none print:p-0">
       {/* Header lives in <thead>, footer in <tfoot> — browsers repeat those on
@@ -100,7 +87,7 @@ export default async function ReportsPdfPage({
         }
       `}</style>
 
-      <PrintControls csvHref={csvHref} />
+      <PrintControls />
 
       <table className="report-doc w-full border-collapse overflow-hidden rounded-xl border border-hairline bg-surface shadow-card print:rounded-none print:border-0 print:shadow-none">
         {/* ---------- Header (repeats every printed page) ---------- */}
