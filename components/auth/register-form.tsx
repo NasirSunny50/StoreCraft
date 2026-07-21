@@ -38,7 +38,7 @@ function Field({
         autoComplete={autoComplete}
         required={required}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-hairline-strong bg-surface px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
+        className="w-full rounded-lg border border-hairline-strong bg-surface px-3.5 py-2 text-sm outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
       />
       {hint && <p className="text-xs text-muted">{hint}</p>}
       {errors?.[0] && <p className="text-sm text-accent">{errors[0]}</p>}
@@ -54,7 +54,7 @@ export function RegisterForm({ callbackUrl }: { callbackUrl?: string }) {
   const fe = state?.fieldErrors;
 
   return (
-    <form action={formAction} className="space-y-4" noValidate>
+    <form action={formAction} className="space-y-3" noValidate>
       {callbackUrl && <input type="hidden" name="callbackUrl" value={callbackUrl} />}
       {state?.error && (
         <p
@@ -72,9 +72,11 @@ export function RegisterForm({ callbackUrl }: { callbackUrl?: string }) {
         <PhoneInput name="phone" id="phone" required testId="register-phone" />
         {fe?.phone?.[0] && <p className="text-sm text-accent">{fe.phone[0]}</p>}
       </div>
-      <Field name="email" label="Email" type="email" autoComplete="email" placeholder="you@example.com" required={false} hint="Add an email to receive order updates by email." errors={fe?.email} />
-      <Field name="password" label="Password" type="password" autoComplete="new-password" placeholder="At least 6 characters" errors={fe?.password} />
-      <Field name="confirmPassword" label="Confirm password" type="password" autoComplete="new-password" placeholder="Repeat the password" errors={fe?.confirmPassword} />
+      <Field name="email" label="Email" type="email" autoComplete="email" placeholder="you@example.com" required={false} errors={fe?.email} />
+      <div className="grid grid-cols-2 gap-3">
+        <Field name="password" label="Password" type="password" autoComplete="new-password" placeholder="Min 6 characters" errors={fe?.password} />
+        <Field name="confirmPassword" label="Confirm" type="password" autoComplete="new-password" placeholder="Repeat" errors={fe?.confirmPassword} />
+      </div>
 
       <Button
         type="submit"

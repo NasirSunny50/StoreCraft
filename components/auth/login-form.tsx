@@ -12,7 +12,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   );
 
   return (
-    <form action={formAction} className="space-y-4" noValidate>
+    <form action={formAction} className="space-y-3" noValidate>
       {callbackUrl && <input type="hidden" name="callbackUrl" value={callbackUrl} />}
       {state?.error && (
         <p
