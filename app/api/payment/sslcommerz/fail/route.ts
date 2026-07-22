@@ -1,12 +1,4 @@
 import { NextResponse } from "next/server";
-import {
-  verifySslcommerzSignature,
-  sslcommerzStorePassword,
-  sslcommerzTransactionStatus,
-} from "@/lib/sslcommerz";
-import { failOrderPaymentByNumber, markOrderPaid } from "@/lib/orders";
-import { notifyOrderPlaced, notifyOrderStatus } from "@/lib/notify-order";
-import { orderResultUrl } from "@/lib/order-result";
 import { siteUrl } from "@/lib/site-url";
 import {
   paymentProcessingResponse,
@@ -17,23 +9,18 @@ import {
 const FAIL_PATH = "/api/payment/sslcommerz/fail";
 
 /**
- * Payment failed. We never trust this POST: first re-check server-side whether
- * the order was actually paid (a late/duplicated callback could arrive after a
- * real payment) — if so, mark it paid rather than cancelling. Otherwise, verify
- * the callback signature (so a forged POST can't cancel someone's order), then
- * release the reserved stock and cancel the order.
+ * Payment failed. The first POST returns our loader fast (no heavy imports);
+ * the finalize step (dynamically imported) re-checks whether the order was in
+ * fact paid, else verifies the signature and cancels it.
  */
 export async function POST(req: Request) {
   const base = siteUrl();
-  let tranId = "";
   try {
     const form = await req.formData();
     const fields: Record<string, string> = {};
     for (const [k, v] of form.entries()) fields[k] = String(v);
-    tranId = fields.tran_id ?? "";
 
-    // Step 1 — show the loader (re-checks payment state on finalize) instead of
-    // a blank tab while we query the gateway.
+    // Step 1 — show the loader immediately; it auto-posts back here to finalize.
     if (fields[FINALIZE_STEP] !== FINALIZE_VALUE) {
       return paymentProcessingResponse({
         actionUrl: FAIL_PATH,
@@ -43,22 +30,11 @@ export async function POST(req: Request) {
       });
     }
 
-    if (tranId) {
-      const tx = await sslcommerzTransactionStatus(tranId);
-      if (tx.paid) {
-        const res = await markOrderPaid(tranId, tx.amount);
-        if (res.ok && res.newlyPaid) {
-          await notifyOrderPlaced(res.orderId);
-          if (res.confirmed) await notifyOrderStatus(res.orderId, "CONFIRMED");
-        }
-        return NextResponse.redirect(await orderResultUrl(base, tranId, { placed: "1" }), 303);
-      }
-      if (verifySslcommerzSignature(fields, sslcommerzStorePassword())) {
-        await failOrderPaymentByNumber(tranId);
-      }
-    }
+    // Step 2 — finalize (heavy logic loaded only now).
+    const { finalizeFailure } = await import("@/lib/payment/finalize");
+    return finalizeFailure(fields, base, "failed");
   } catch (e) {
     console.error("[sslcommerz fail]", e);
+    return NextResponse.redirect(`${base}/orders?payment=failed`, 303);
   }
-  return NextResponse.redirect(await orderResultUrl(base, tranId, { payment: "failed" }), 303);
 }
