@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, ArrowLeft, Phone, Truck, ExternalLink } from "lucide-react";
+import { CheckCircle2, ArrowLeft, Phone, Truck, ExternalLink, Image as ImageIcon } from "lucide-react";
 import { requireAuth } from "@/lib/auth-guard";
 import { getOrderByNumberForUser } from "@/lib/queries/order";
 import { canCancelOrder, ORDER_STATUS_FLOW, paymentMethodLabel } from "@/lib/order-math";
@@ -154,20 +154,45 @@ export default async function OrderDetailPage({
             <h2 className="text-sm font-bold">Items</h2>
           </div>
           <div className="divide-y divide-hairline">
-            {order.items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                <div>
-                  <div className="font-medium text-ink">{item.name}</div>
-                  <div className="text-muted">
-                    {formatBDT(item.price)} × {item.quantity}
-                    {item.color ? ` · ${colorName(item.color)}` : ""}
+            {order.items.map((item) => {
+              const img = item.product.images[0]?.url;
+              const linkable = !item.product.isDeleted;
+              const media = (
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-md border border-hairline bg-surface-2">
+                    {img ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={img} alt={item.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <ImageIcon className="h-5 w-5 text-muted" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className={cn("truncate font-medium text-ink", linkable && "group-hover:text-accent")}>
+                      {item.name}
+                    </div>
+                    <div className="text-muted">
+                      {formatBDT(item.price)} × {item.quantity}
+                      {item.color ? ` · ${colorName(item.color)}` : ""}
+                    </div>
                   </div>
                 </div>
-                <div className="font-medium">
-                  {formatBDT(item.price.times(item.quantity))}
+              );
+              return (
+                <div key={item.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                  {linkable ? (
+                    <Link href={`/products/${item.product.slug}`} className="group min-w-0 flex-1" data-testid="order-item-link">
+                      {media}
+                    </Link>
+                  ) : (
+                    <div className="min-w-0 flex-1">{media}</div>
+                  )}
+                  <div className="shrink-0 font-medium">
+                    {formatBDT(item.price.times(item.quantity))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="space-y-1.5 border-t border-hairline px-4 py-3 text-sm">
             <Row label="Subtotal" value={formatBDT(order.subtotal)} />

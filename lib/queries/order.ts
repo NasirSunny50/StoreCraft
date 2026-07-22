@@ -2,7 +2,19 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 const orderInclude = {
-  items: true,
+  items: {
+    include: {
+      // Live product ref so order details can show the image and link back to
+      // the product (snapshot name/price still come from the OrderItem itself).
+      product: {
+        select: {
+          slug: true,
+          isDeleted: true,
+          images: { orderBy: { position: "asc" }, take: 1, select: { url: true } },
+        },
+      },
+    },
+  },
   address: true,
   statusLogs: { orderBy: { createdAt: "asc" as const } },
 } satisfies Prisma.OrderInclude;
