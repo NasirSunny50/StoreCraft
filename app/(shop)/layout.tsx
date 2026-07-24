@@ -17,7 +17,7 @@ export default async function ShopLayout({
     <CompareProvider>
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 pb-24 lg:pb-5">
+      <main className="mx-auto w-full max-w-[1180px] flex-1 px-4 py-5 pb-24 lg:pb-5">
         {children}
       </main>
 
@@ -26,7 +26,7 @@ export default async function ShopLayout({
       <MobileBottomNav isAuthed={!!session?.user} />
 
       <footer className="mt-10 bg-navbar text-white/70">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-12 md:grid-cols-4">
+        <div className="mx-auto grid max-w-[1180px] grid-cols-2 gap-8 px-4 py-12 md:grid-cols-4">
           <div>
             <div className="mb-3">
               <BrandLogo shopName={branding.shopName} logoUrl={branding.logoUrl} variant="dark" className="text-xl" imgClassName="h-8" />
@@ -71,7 +71,7 @@ export default async function ShopLayout({
           </div>
         </div>
         <div className="border-t border-white/10">
-          <div className="mx-auto max-w-7xl px-4 py-4 text-xs text-white/50">
+          <div className="mx-auto max-w-[1180px] px-4 py-4 text-xs text-white/50">
             © {new Date().getFullYear()} {branding.shopName}. All rights reserved.
           </div>
         </div>
