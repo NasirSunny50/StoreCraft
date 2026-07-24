@@ -27,7 +27,7 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40">
       {/* Top utility bar */}
       <div className="bg-navbar text-white">
-        <div className="mx-auto flex h-9 max-w-[1180px] items-center justify-between px-4 text-xs">
+        <div className="mx-auto flex h-9 max-w-[1440px] items-center justify-between px-4 text-xs lg:px-8">
           <span className="hidden truncate text-white/70 sm:inline">Tech for everyone — fast delivery across Bangladesh</span>
           <div className="ml-auto flex items-center gap-4">
             {branding.hotline && (
@@ -77,7 +77,7 @@ export async function SiteHeader() {
 
       {/* Main header: logo + search + cart */}
       <div className="border-b border-hairline bg-surface">
-        <div className="mx-auto max-w-[1180px] px-4 py-3">
+        <div className="mx-auto max-w-[1440px] px-4 py-3 lg:px-8">
           <div className="flex items-center gap-3">
           <MobileMenu
             categories={categories}
@@ -132,7 +132,7 @@ export async function SiteHeader() {
 
       {/* Category navigation bar (desktop only — mobile uses the hamburger menu) */}
       <nav className="hidden bg-navbar-2 text-white lg:block">
-        <div className="mx-auto flex max-w-[1180px] items-center px-4">
+        <div className="mx-auto flex max-w-[1440px] items-center px-4 lg:px-8">
           <div className="group relative">
             <button className="flex h-11 items-center gap-2 bg-accent px-4 text-sm font-semibold">
               All Categories
